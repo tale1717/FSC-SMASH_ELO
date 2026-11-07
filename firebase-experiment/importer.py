@@ -3,27 +3,13 @@ import argparse
 import json
 import os
 import sys
-import urllib.request
-import urllib.parse
+import challonge
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from engine import select, normalize, build, validate_size
 
 PROJECT = 'fsc-smash-elo'
-
-
-def request(path, key, kind):
-    url = 'https://api.challonge.com/v1/' + path + '.json?' + urllib.parse.urlencode({'api_key': key})
-    try:
-        with urllib.request.urlopen(url, timeout=45) as response:
-            payload = json.load(response)
-        if not isinstance(payload, list):
-            raise ValueError('Unexpected response')
-        return [item[kind] for item in payload]
-    except Exception:
-        # Never print exceptions containing the credential-bearing request URL.
-        raise RuntimeError('Challonge request failed. Check API access, quota, and account ownership.') from None
 
 
 def main():
@@ -34,10 +20,15 @@ def main():
     key = os.environ.get('CHALLONGE_API_KEY', '').strip()
     if not key:
         raise ValueError('Set the CHALLONGE_API_KEY secret')
-    events = select(request('tournaments', key, 'tournament'))
+    events = select(challonge.tournaments(key))
     for event in events:
         print(f"Selected {event['name']} | https://challonge.com/{event['slug']}")
     if not args.publish:
+        sources = [normalize(event, challonge.participants(event['id'], key),
+                             challonge.matches(event['id'], key)) for event in events]
+        aliases = json.loads(Path(__file__).with_name('aliases.json').read_text())
+        dashboard = build(sources, aliases)
+        print(f"Preview: {len(events)} tournaments, {len(dashboard['players'])} players, {len(dashboard['matches'])} sets.")
         print('Preview finished. No Firestore connection or database writes.')
         return
     # Google Cloud client supports Application Default Credentials from GitHub OIDC.
@@ -57,8 +48,8 @@ def main():
         if eid in cache and not args.refresh:
             source = dict(cache[eid], event=event)
         else:
-            source = normalize(event, request(f'tournaments/{eid}/participants', key, 'participant'),
-                               request(f'tournaments/{eid}/matches', key, 'match'))
+            source = normalize(event, challonge.participants(eid, key),
+                               challonge.matches(eid, key))
         validate_size(source)
         sources.append(source)
         if cache.get(eid) != source:

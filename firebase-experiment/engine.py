@@ -11,6 +11,8 @@ MAX_DOCUMENT_BYTES = 750_000
 
 
 def instant(value):
+    if not isinstance(value, str) or not value:
+        raise ValueError('Tournament start date is missing; set it in Challonge before importing')
     date = datetime.fromisoformat(value.replace('Z', '+00:00'))
     if date.tzinfo is None:
         raise ValueError('Tournament dates must include a timezone')
@@ -20,19 +22,24 @@ def instant(value):
 def select(events):
     by_slug = {t['url']: t for t in events}
     reference = by_slug.get(SEEDS[-1], {})
-    game = reference.get('game_id')
-    if not isinstance(game, int) or game <= 0:
-        raise ValueError('Reference Ultimate bracket is missing or has no game ID')
+    def game_of(t):
+        name = t.get('game_name')
+        if isinstance(name, str) and name.strip():
+            return name.strip().casefold()
+        return t.get('game_id')
+    game = game_of(reference)
+    if not game or (isinstance(game, int) and game <= 0):
+        raise ValueError('Reference Ultimate bracket is missing or has no game identity')
     for slug in SEEDS:
         t = by_slug.get(slug, {})
-        if t.get('state') != 'complete' or t.get('game_id') != game:
+        if t.get('state') != 'complete' or game_of(t) != game:
             raise ValueError(f'Initial bracket missing, unfinished, or wrong game: {slug}')
     def started(t):
         return t.get('started_at') or t.get('start_at')
     cutoff = max(instant(started(by_slug[s])) for s in SEEDS)
     selected = {}
     for t in events:
-        if t.get('state') != 'complete' or t.get('game_id') != game:
+        if t.get('state') != 'complete' or game_of(t) != game:
             continue
         seed = t['url'] in SEEDS
         if not seed and not t['name'].startswith(PREFIX):

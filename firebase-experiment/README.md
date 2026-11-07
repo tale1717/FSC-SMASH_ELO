@@ -20,7 +20,7 @@ is untouched. Nothing here has been deployed or imported into the live project y
 ## Import behavior and limits
 
 The four required initial brackets are `3gee2mio`, `ezus0cc3`, `knpl9s22`, `yt30nf6m`.
-Later events must be completed, start after all four initial events, match the game ID
+Later events must be completed, start after all four initial events, match the game name
 of #4, and have a title beginning `FSC Fall Bracket`. This prefix applies to future years
 too: decide on a season rollover before importing a later Fall season.
 Only singles without group stages are supported. All four seed brackets must remain
@@ -62,8 +62,9 @@ Python 3.12:
 python -m unittest discover -s firebase-experiment/tests -v
 ```
 
-The 12 tests cover selection, missing seeds, unsupported groups, DQs, inconsistent winners,
-Elo values, zero-sum replay, duplicate events, aliases and document size guards.
+The 23 tests cover selection, missing seeds, unsupported groups, DQs, inconsistent winners,
+Elo values, zero-sum replay, duplicate events, aliases, document size guards, v2.1
+response conversion, pagination, credential-safe errors, and preview without Firestore.
 They do not test real Challonge responses, Firestore transactions, deployed security
 rules or Firebase Hosting. Those live checks remain necessary.
 
@@ -89,8 +90,17 @@ preparation, so no remote commits were made by the assistant.
    tournaments have been imported. Never deploy the repository root as the public folder.
 
 `public/firebase-config.js` is the user-provided public web configuration. Its Firebase
-API key is not an administrative credential. Do not put Challonge credentials or a
-service-account private key into this folder.
+API key is not an administrative credential. Firebase web configuration is public by
+design when the key is restricted to Firebase APIs; Firestore rules and IAM enforce
+access. Do not put Challonge credentials, Gemini API keys, or a service-account private
+key into this folder.
+
+If you recreated the Firebase web app in the same project, open Project settings →
+General → Your apps → the new web app → SDK setup and configuration → Config.
+Replace the object in `public/firebase-config.js` with that new app's configuration,
+keeping the existing `export const firebaseConfig = ...` declaration. The migration
+update ZIP intentionally does not include that file. Keep projectId `fsc-smash-elo`.
+Deleting/recreating a web app is not a guaranteed API-key rotation.
 
 ## Preview first (no Google credentials required)
 
@@ -100,16 +110,37 @@ In GitHub repository Settings → Secrets and variables → Actions:
 - Add a repository **variable** `FIREBASE_IMPORT_ENABLED` with the value `true`.
 
 Keep `import-request.json` at `"mode":"preview"`. Increment `request` and commit the
-change to `test-firebase`. This triggers a preview listing the selected tournaments,
-without opening Firestore. Check all names and dates in the Actions log.
+change to `test-firebase`. This triggers a preview fetching the selected tournaments,
+participants and matches and calculating ratings without opening Firestore.
+Check all names and counts in the Actions log.
 
 The push trigger is provided because `workflow_dispatch` is only discoverable normally
 once that workflow is on the default branch. Do not merge merely to enable manual runs.
 
-The importer currently uses the original Challonge API v1. That API is deprecated;
-confirm the organizer account still has access. Check the account's request allowance.
-A normal run uses one list request plus two per newly imported event. A full refresh
-uses two per selected event. Avoid frequent full refreshes.
+The importer uses **Challonge API v2.1** with the organizer's account API key.
+Obtain that key at https://challonge.com/settings/developer and store it only in the
+GitHub Actions secret `CHALLONGE_API_KEY`. The supported header `Authorization-Type: v1`
+describes the key type; all requests go to `/v2.1/`, not the deprecated `/v1/` endpoints.
+The key is sent in the Authorization header, never in a URL or website file.
+
+Tournament listing uses the documented `state=ended` filter. The v2.1 tournament schema
+omits game ID and state, so selection compares game names and relies on that server-side
+filter when state is omitted. Actual start time is preferred when returned; the documented
+`starts_at` scheduled time is the fallback. Missing dates stop the import for correction.
+Keep the `FSC Fall Bracket` naming convention reserved for singles Ultimate events;
+the documented tournament schema does not provide a reliable teams flag.
+
+Collections use page/per_page and continue to an empty page, with duplicate-ID and
+50-page guards. At 25 items per page, each collection costs floor(N/25)+2 requests.
+For four small brackets (16 players, around 30 matches each), a full preview costs
+approximately 22 requests including the tournament list. Cached publish runs fetch
+only the tournament list unless new events or refresh require more data. Preview
+always refetches all selected results. Avoid frequent previews/full refreshes given
+Challonge's request allowance (currently 500/month free).
+
+These adapters are tested with synthetic documented-format responses. The first live
+preview must succeed before publishing; undocumented response differences may need
+adjustment. There is no fallback to API v1.
 
 ## Give GitHub permission to publish (no downloaded private key)
 
@@ -161,3 +192,9 @@ References:
 - https://github.com/google-github-actions/auth
 - https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
 - https://challonge.apidog.io/
+
+API migration references:
+- https://challonge.apidog.io/getting-started-1726706m0
+- https://challonge.apidog.io/list-tournaments-23619739e0
+- https://challonge.apidog.io/list-matches-23619745e0
+- https://firebase.google.com/docs/projects/api-keys
