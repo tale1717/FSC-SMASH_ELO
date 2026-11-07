@@ -68,7 +68,10 @@ def collection(path, key, kind, **filters):
         except urllib.error.HTTPError as error:
             hints = {401: 'Check Challonge authorization.', 403: 'Check account access.',
                      429: 'Challonge request quota reached; try after the quota resets.'}
-            body = error.read(16384).decode('utf-8', errors='replace').lower()
+            try:
+                body = error.read(16384).decode('utf-8', errors='replace').lower()
+            except Exception:
+                body = ''
             content_type = error.headers.get('Content-Type', '').lower() if error.headers else ''
             if 'cf-chl-' in body or 'just a moment' in body or 'cloudflare' in body:
                 detail = 'Response indicates a Cloudflare/security block, not a confirmed credential error.'
