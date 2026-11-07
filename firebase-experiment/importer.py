@@ -83,5 +83,21 @@ if __name__ == '__main__':
         if isinstance(error, (ValueError, RuntimeError)):
             print(str(error), file=sys.stderr)
         else:
-            print('Import failed before confirmed publication. Check configuration and credentials.', file=sys.stderr)
+            print('Import failed before confirmed publication. Error type: ' + type(error).__name__, file=sys.stderr)
+            message = str(error).lower()
+            diagnostics = {
+                'iam.serviceaccounts.getaccesstoken': 'Google denied service-account token creation (iam.serviceAccounts.getAccessToken).',
+                'iamcredentials.googleapis.com': 'The error refers to the IAM Service Account Credentials API.',
+                'service_disabled': 'Google reports that a required API is disabled.',
+                'has not been used': 'Google reports an API has not been used or is disabled.',
+                'attribute condition': 'The workload identity provider attribute condition rejected the request.',
+                'invalid_target': 'Google rejected the workload identity provider target.',
+                'datastore.entities': 'Google reports a missing Firestore entity permission.',
+                'cloud datastore api': 'The error refers to the Cloud Datastore API.',
+                'firestore.googleapis.com': 'The error refers to the Firestore API.',
+                'default credentials': 'Google Application Default Credentials could not be loaded.',
+            }
+            for marker, description in diagnostics.items():
+                if marker in message:
+                    print(description, file=sys.stderr)
         sys.exit(1)
