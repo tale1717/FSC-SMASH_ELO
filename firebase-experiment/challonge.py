@@ -34,6 +34,7 @@ def collection(path, key, kind, **filters):
         req = urllib.request.Request(BASE + path + '.json?' + query, headers={
             'Authorization': key, 'Authorization-Type': 'v1',
             'Accept': 'application/json', 'Content-Type': 'application/vnd.api+json',
+            'User-Agent': 'FSC-Smash-Elo/1.0 (+https://github.com/tale1717/FSC-SMASH_ELO)',
         })
         try:
             with opener.open(req, timeout=45) as response:
