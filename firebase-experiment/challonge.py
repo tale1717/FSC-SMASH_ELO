@@ -81,7 +81,7 @@ def collection(path, key, kind, **filters):
                 detail = 'Server returned an API JSON error response.'
             else:
                 detail = 'Server returned an unrecognized error response.'
-            raise RuntimeError(f'Challonge HTTP {error.code}. ' + detail + ' ' + hints.get(error.code, 'Request failed; no publication.')) from None
+            raise RuntimeError(f'Challonge HTTP {error.code} at {path}.json (page {page}). ' + detail + ' ' + hints.get(error.code, 'Request failed; no publication.')) from None
         except Exception:
             raise RuntimeError('Challonge connection or JSON response failed; no publication.') from None
         if not isinstance(payload, dict) or payload.get('errors') or not isinstance(payload.get('data'), list):
@@ -132,11 +132,39 @@ def match_record(row):
         data = (relationships.get(slot) or {}).get('data')
         return str(data['id']) if data and data.get('id') is not None else None
     p1, p2 = player('player1'), player('player2')
+    points = a.get('points_by_participant')
+    point_scores = None
+    if points is not None:
+        if not isinstance(points, list) or len(points) > 2:
+            raise ValueError('Invalid match participant points')
+        ids, totals = [], []
+        for entry in points:
+            if not isinstance(entry, dict):
+                raise ValueError('Invalid match participant points')
+            pid = str(entry.get('participant_id', ''))
+            scores = entry.get('scores')
+            if (not pid.isdigit() or pid in ids or not isinstance(scores, list)
+                    or not scores or any(type(n) is not int for n in scores)):
+                raise ValueError('Invalid match participant IDs or scores')
+            ids.append(pid)
+            totals.append(scores)
+        if len(ids) == 2:
+            if p1 is not None and p2 is not None:
+                if set(ids) != {p1, p2}:
+                    raise ValueError('Conflicting match participant IDs')
+                totals = [totals[ids.index(p1)], totals[ids.index(p2)]]
+            else:
+                p1, p2 = ids
+            if len(totals[0]) != len(totals[1]):
+                raise ValueError('Mismatched participant score counts')
+            point_scores = ','.join(f'{x}-{y}' for x, y in zip(*totals))
+        elif len(ids) == 1 and p1 is None and p2 is None:
+            p1 = ids[0]
     winner = str(a['winner_id']) if a.get('winner_id') is not None else None
     if winner is not None and p1 is not None and p2 is not None and winner not in (p1, p2):
         raise ValueError('Match winner is not either opponent')
     loser = (p2 if winner == p1 else p1) if winner in (p1, p2) else None
-    score = a.get('scores')
+    score = point_scores if point_scores is not None else a.get('scores')
     if a.get('state') == 'complete' and winner and (not p1 or not p2):
         # A bye has at most one participant. Both missing indicates schema drift.
         if not p1 and not p2:
