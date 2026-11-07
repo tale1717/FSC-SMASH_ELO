@@ -96,6 +96,13 @@ if __name__ == '__main__':
                 'cloud datastore api': 'The error refers to the Cloud Datastore API.',
                 'firestore.googleapis.com': 'The error refers to the Firestore API.',
                 'default credentials': 'Google Application Default Credentials could not be loaded.',
+                'missing or insufficient permissions': 'Firestore reports missing or insufficient permissions.',
+                'insufficient authentication scopes': 'Google reports insufficient authentication scopes.',
+                'access_token_scope_insufficient': 'Google reports ACCESS_TOKEN_SCOPE_INSUFFICIENT.',
+                'permission denied on resource project': 'Google denied access to the resource project.',
+                'serviceusage.services.use': 'Google denied serviceusage.services.use.',
+                'consumer_invalid': 'Google reports CONSUMER_INVALID.',
+                'iam.googleapis.com': 'The error refers to the IAM API.',
             }
             for marker, description in diagnostics.items():
                 if marker in message:
