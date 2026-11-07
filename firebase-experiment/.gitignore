@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.env
+.env.*
+*service-account*.json
+gha-creds-*.json
+firebase-debug.log
+.firestore-debug.log
+.firebase/

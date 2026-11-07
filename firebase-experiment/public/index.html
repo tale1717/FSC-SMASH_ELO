@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FSC Smash Elo</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><span class="eyebrow">FARMINGDALE • SUPER SMASH BROS. ULTIMATE</span><h1>FSC Smash Elo<span>.</span></h1><p>Your scene. Every set counts.</p></header>
+<main>
+<p id="status" role="status">Loading rankings…</p>
+<section class="stats" aria-label="Season totals"><div><strong id="players-count">—</strong>players</div><div><strong id="events-count">—</strong>tournaments</div><div><strong id="sets-count">—</strong>sets played</div></section>
+<section><div class="section-head"><h2>Fall rankings</h2><label>Find a player <input id="search" type="search" placeholder="Player name" disabled></label></div>
+<div class="scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>Elo</th><th>Sets W–L</th></tr></thead><tbody id="rankings"></tbody></table></div><p id="empty" hidden>No players match your search.</p></section>
+<section id="profile" hidden tabindex="-1"><h2 id="profile-name"></h2><p id="profile-summary"></p><h3>Head-to-head</h3><div class="scroll"><table><thead><tr><th>Opponent</th><th>Won</th><th>Lost</th></tr></thead><tbody id="opponents"></tbody></table></div><h3>Set history</h3><ul id="history"></ul></section>
+<section><h2>Tournaments</h2><ul id="tournaments"></ul></section>
+<footer>Ratings start at 1000. K = 64 with score-margin adjustment. DQs recorded with negative scores are excluded. Ratings update after a successful import.</footer>
+</main><script type="module" src="app.js"></script>
+</body></html>

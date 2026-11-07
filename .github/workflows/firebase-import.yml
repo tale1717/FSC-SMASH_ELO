@@ -1,0 +1,72 @@
+name: Firebase tournament import
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [preview, publish]
+        default: preview
+        description: Preview tournament selection or publish ratings
+      refresh:
+        type: boolean
+        default: false
+        description: Refetch all saved brackets to incorporate corrections
+  push:
+    branches: [test-firebase]
+    paths: ['firebase-experiment/import-request.json']
+permissions:
+  contents: read
+concurrency:
+  group: fsc-firebase-import
+  cancel-in-progress: false
+jobs:
+  import:
+    if: github.ref == 'refs/heads/test-firebase' && vars.FIREBASE_IMPORT_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Select operation
+        id: operation
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_REFRESH: ${{ inputs.refresh }}
+        run: |
+          python - <<'PY'
+          import json,os
+          request=json.load(open('firebase-experiment/import-request.json'))
+          mode=os.environ.get('INPUT_MODE') or request['mode']
+          refresh=os.environ.get('INPUT_REFRESH')
+          refresh=(refresh=='true') if refresh else request.get('refresh',False)
+          if mode not in ('preview','publish'): raise SystemExit('Invalid mode')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as out:
+              out.write('mode='+mode+'\n')
+              out.write('refresh='+str(bool(refresh)).lower()+'\n')
+          PY
+      - run: python -m unittest discover -s firebase-experiment/tests -v
+      - if: steps.operation.outputs.mode == 'publish'
+        run: pip install -r firebase-experiment/requirements.txt
+      - if: steps.operation.outputs.mode == 'publish'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMPORT_SERVICE_ACCOUNT }}
+      - name: Run importer
+        env:
+          CHALLONGE_API_KEY: ${{ secrets.CHALLONGE_API_KEY }}
+          IMPORT_MODE: ${{ steps.operation.outputs.mode }}
+          IMPORT_REFRESH: ${{ steps.operation.outputs.refresh }}
+        run: |
+          python - <<'PY'
+          import os,subprocess,sys
+          args=[sys.executable,'firebase-experiment/importer.py']
+          if os.environ['IMPORT_MODE']=='publish': args.append('--publish')
+          if os.environ['IMPORT_REFRESH']=='true': args.append('--refresh')
+          subprocess.run(args,check=True)
+          PY
