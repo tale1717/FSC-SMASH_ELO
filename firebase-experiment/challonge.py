@@ -18,36 +18,9 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def credentials():
-    client_id = os.environ.get('CHALLONGE_CLIENT_ID', '').strip()
-    secret = os.environ.get('CHALLONGE_CLIENT_SECRET', '').strip()
-    if client_id or secret:
-        if not client_id or not secret:
-            raise ValueError('Set both CHALLONGE_CLIENT_ID and CHALLONGE_CLIENT_SECRET secrets')
-        body = urllib.parse.urlencode({
-            'grant_type': 'client_credentials', 'client_id': client_id,
-            'client_secret': secret,
-            'scope': 'tournaments:read participants:read matches:read',
-        }).encode()
-        req = urllib.request.Request('https://api.challonge.com/oauth/token', data=body,
-                                     headers={'Content-Type': 'application/x-www-form-urlencoded',
-                                              'Accept': 'application/json'})
-        try:
-            with urllib.request.build_opener(NoRedirect).open(req, timeout=45) as response:
-                payload = json.load(response)
-        except urllib.error.HTTPError as error:
-            raise RuntimeError(f'Challonge OAuth HTTP {error.code}. Check the client credentials and application permissions.') from None
-        except Exception:
-            raise RuntimeError('Challonge OAuth connection or response failed.') from None
-        token = payload.get('access_token') if isinstance(payload, dict) else None
-        if (not isinstance(token, str) or not token.strip() or
-                any(c in token for c in ('\r', '\n')) or
-                str(payload.get('token_type', '')).lower() != 'bearer'):
-            raise ValueError('Challonge OAuth returned no valid Bearer token')
-        # The token is used in memory for this run; never write it to files/logs.
-        return {'Authorization': 'Bearer ' + token, 'Authorization-Type': 'v2'}
     key = os.environ.get('CHALLONGE_API_KEY', '').strip()
     if not key:
-        raise ValueError('Set CHALLONGE_CLIENT_ID and CHALLONGE_CLIENT_SECRET secrets')
+        raise ValueError('Set the CHALLONGE_API_KEY secret')
     return key
 
 
@@ -59,7 +32,7 @@ def collection(path, key, kind, **filters):
     for page in range(1, MAX_PAGES + 1):
         query = urllib.parse.urlencode(dict(filters, page=page, per_page=PAGE_SIZE))
         req = urllib.request.Request(BASE + path + '.json?' + query, headers={
-            **(key if isinstance(key, dict) else {'Authorization': key, 'Authorization-Type': 'v1'}),
+            'Authorization': key, 'Authorization-Type': 'v1',
             'Accept': 'application/json', 'Content-Type': 'application/vnd.api+json',
         })
         try:
