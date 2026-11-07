@@ -118,46 +118,16 @@ class ApiTests(unittest.TestCase):
         self.assertIn('1 sets', output.getvalue())
         self.assertIn('No Firestore', output.getvalue())
 
-class OAuthTests(unittest.TestCase):
-    def test_client_credentials_and_bearer_requests(self):
-        opener = MagicMock()
-        opener.open.side_effect = [io.StringIO(json.dumps({'access_token': 'test-token', 'token_type': 'Bearer'})),
-                                  io.StringIO(json.dumps({'data': []}))]
-        with patch.dict('os.environ', {'CHALLONGE_CLIENT_ID': 'test-id', 'CHALLONGE_CLIENT_SECRET': 'test-secret'}, clear=True), \
-             patch('challonge.urllib.request.build_opener', return_value=opener), \
-             patch('sys.stdout', new_callable=io.StringIO) as output:
-            auth = challonge.credentials()
-            challonge.collection('tournaments', auth, 'tournament')
-        token_request, api_request = [call.args[0] for call in opener.open.call_args_list]
-        self.assertEqual(token_request.get_method(), 'POST')
-        self.assertNotIn('test-secret', token_request.full_url)
-        body = challonge.urllib.parse.parse_qs(token_request.data.decode())
-        self.assertEqual(body['grant_type'], ['client_credentials'])
-        self.assertEqual(body['client_secret'], ['test-secret'])
-        headers = {k.lower():v for k,v in api_request.header_items()}
-        self.assertEqual(headers['authorization'], 'Bearer test-token')
-        self.assertEqual(headers['authorization-type'], 'v2')
-        self.assertEqual(output.getvalue(), '')
+class ApiKeyCredentialsTests(unittest.TestCase):
+    def test_oauth_environment_is_ignored(self):
+        with patch.dict('os.environ', {'CHALLONGE_API_KEY': ' key ',
+                'CHALLONGE_CLIENT_ID': 'id', 'CHALLONGE_CLIENT_SECRET': 'secret'}, clear=True), \
+                patch('challonge.urllib.request.build_opener') as opener:
+            self.assertEqual(challonge.credentials(), 'key')
+            opener.assert_not_called()
 
-    def test_partial_credentials_do_not_fall_back(self):
-        with patch.dict('os.environ', {'CHALLONGE_CLIENT_ID': 'id', 'CHALLONGE_API_KEY': 'key'}, clear=True):
-            with self.assertRaisesRegex(ValueError, 'both'):
+    def test_missing_key_fails_even_with_oauth(self):
+        with patch.dict('os.environ', {'CHALLONGE_CLIENT_ID': 'id',
+                'CHALLONGE_CLIENT_SECRET': 'secret'}, clear=True):
+            with self.assertRaisesRegex(ValueError, 'CHALLONGE_API_KEY'):
                 challonge.credentials()
-
-    def test_token_errors_hide_secrets(self):
-        opener = MagicMock()
-        opener.open.side_effect = urllib.error.HTTPError('secret-url', 401, 'private-response', {}, None)
-        with patch.dict('os.environ', {'CHALLONGE_CLIENT_ID': 'id', 'CHALLONGE_CLIENT_SECRET': 'secret'}, clear=True), \
-             patch('challonge.urllib.request.build_opener', return_value=opener):
-            with self.assertRaises(RuntimeError) as error:
-                challonge.credentials()
-        self.assertNotIn('private-response', str(error.exception))
-        self.assertNotIn('secret-url', str(error.exception))
-
-    def test_invalid_token_response_is_rejected(self):
-        for payload in ({}, {'access_token': 'bad\ntoken', 'token_type': 'Bearer'}, {'access_token': 'token', 'token_type': 'Basic'}):
-            opener = MagicMock(); opener.open.return_value = io.StringIO(json.dumps(payload))
-            with patch.dict('os.environ', {'CHALLONGE_CLIENT_ID': 'id', 'CHALLONGE_CLIENT_SECRET': 'secret'}, clear=True), \
-                 patch('challonge.urllib.request.build_opener', return_value=opener):
-                with self.assertRaises(ValueError):
-                    challonge.credentials()
