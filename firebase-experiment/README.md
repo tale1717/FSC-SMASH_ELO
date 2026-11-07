@@ -62,7 +62,7 @@ Python 3.12:
 python -m unittest discover -s firebase-experiment/tests -v
 ```
 
-The 23 tests cover selection, missing seeds, unsupported groups, DQs, inconsistent winners,
+The 27 tests cover selection, missing seeds, unsupported groups, DQs, inconsistent winners,
 Elo values, zero-sum replay, duplicate events, aliases, document size guards, v2.1
 response conversion, pagination, credential-safe errors, and preview without Firestore.
 They do not test real Challonge responses, Firestore transactions, deployed security
@@ -106,7 +106,8 @@ Deleting/recreating a web app is not a guaranteed API-key rotation.
 
 In GitHub repository Settings → Secrets and variables → Actions:
 
-- Add a repository **secret** `CHALLONGE_API_KEY` with the organizer's API key.
+- Add repository **secrets** `CHALLONGE_CLIENT_ID` and `CHALLONGE_CLIENT_SECRET` from your Challonge application.
+  The application must belong to the organizer of the four brackets.
 - Add a repository **variable** `FIREBASE_IMPORT_ENABLED` with the value `true`.
 
 Keep `import-request.json` at `"mode":"preview"`. Increment `request` and commit the
@@ -117,11 +118,16 @@ Check all names and counts in the Actions log.
 The push trigger is provided because `workflow_dispatch` is only discoverable normally
 once that workflow is on the default branch. Do not merge merely to enable manual runs.
 
-The importer uses **Challonge API v2.1** with the organizer's account API key.
-Obtain that key at https://challonge.com/settings/developer and store it only in the
-GitHub Actions secret `CHALLONGE_API_KEY`. The supported header `Authorization-Type: v1`
-describes the key type; all requests go to `/v2.1/`, not the deprecated `/v1/` endpoints.
-The key is sent in the Authorization header, never in a URL or website file.
+The importer uses **Challonge API v2.1** with OAuth client credentials.
+Each run exchanges the two GitHub secrets at `https://api.challonge.com/oauth/token`
+for an in-memory Bearer token, requesting tournaments:read, participants:read and
+matches:read. It then uses Authorization-Type: v2 on user-scoped API endpoints.
+No browser redirect or refresh-token storage is needed for this server-side flow.
+The application owner must own the brackets; community-owned events need additional
+scoping. Do not put either secret or a token in the public website or logs.
+An account API key remains an optional legacy credential alternative; OAuth is
+preferred when either OAuth environment variable is supplied, and incomplete OAuth
+configuration fails rather than silently falling back.
 
 Tournament listing uses the documented `state=ended` filter. The v2.1 tournament schema
 omits game ID and state, so selection compares game names and relies on that server-side

@@ -17,9 +17,7 @@ def main():
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--refresh', action='store_true', help='Refetch all selected brackets, including edited results')
     args = parser.parse_args()
-    key = os.environ.get('CHALLONGE_API_KEY', '').strip()
-    if not key:
-        raise ValueError('Set the CHALLONGE_API_KEY secret')
+    key = challonge.credentials()
     events = select(challonge.tournaments(key))
     for event in events:
         print(f"Selected {event['name']} | https://challonge.com/{event['slug']}")

@@ -59,6 +59,8 @@ jobs:
           service_account: ${{ vars.GCP_IMPORT_SERVICE_ACCOUNT }}
       - name: Run importer
         env:
+          CHALLONGE_CLIENT_ID: ${{ secrets.CHALLONGE_CLIENT_ID }}
+          CHALLONGE_CLIENT_SECRET: ${{ secrets.CHALLONGE_CLIENT_SECRET }}
           CHALLONGE_API_KEY: ${{ secrets.CHALLONGE_API_KEY }}
           IMPORT_MODE: ${{ steps.operation.outputs.mode }}
           IMPORT_REFRESH: ${{ steps.operation.outputs.refresh }}
