@@ -68,7 +68,17 @@ def collection(path, key, kind, **filters):
         except urllib.error.HTTPError as error:
             hints = {401: 'Check Challonge authorization.', 403: 'Check account access.',
                      429: 'Challonge request quota reached; try after the quota resets.'}
-            raise RuntimeError(f'Challonge HTTP {error.code}. ' + hints.get(error.code, 'Request failed; no publication.')) from None
+            body = error.read(16384).decode('utf-8', errors='replace').lower()
+            content_type = error.headers.get('Content-Type', '').lower() if error.headers else ''
+            if 'cf-chl-' in body or 'just a moment' in body or 'cloudflare' in body:
+                detail = 'Response indicates a Cloudflare/security block, not a confirmed credential error.'
+            elif 'text/html' in content_type:
+                detail = 'Server returned an HTML error page rather than an API JSON response.'
+            elif 'json' in content_type:
+                detail = 'Server returned an API JSON error response.'
+            else:
+                detail = 'Server returned an unrecognized error response.'
+            raise RuntimeError(f'Challonge HTTP {error.code}. ' + detail + ' ' + hints.get(error.code, 'Request failed; no publication.')) from None
         except Exception:
             raise RuntimeError('Challonge connection or JSON response failed; no publication.') from None
         if not isinstance(payload, dict) or payload.get('errors') or not isinstance(payload.get('data'), list):
