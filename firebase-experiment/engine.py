@@ -8,6 +8,7 @@ from datetime import datetime
 SEEDS = ('3gee2mio', 'ezus0cc3', 'knpl9s22', 'yt30nf6m')
 PREFIX = 'FSC Fall Bracket'
 MAX_DOCUMENT_BYTES = 750_000
+K_FACTOR = 64
 
 
 def instant(value):
@@ -108,11 +109,10 @@ def normalize(event, participants, matches):
     return dict(event=event, participants=list(people.values()), matches=sets, skipped=skipped)
 
 
-def change(winner_elo, loser_elo, winner_score, loser_score):
-    # Same K=64 score-margin policy as the prepared Java draft, with zero-sum rounding.
-    k = max(16, math.floor(128 * (winner_score-loser_score)/winner_score + 0.5))
+def change(winner_elo, loser_elo):
+    # Fixed K per completed set; game scores never affect rating changes.
     expected = 1 / (1 + 10 ** ((loser_elo-winner_elo)/400))
-    return math.floor(k * (1-expected) + 0.5)
+    return math.floor(K_FACTOR * (1-expected) + 0.5)
 
 
 def validate_size(document):
@@ -148,7 +148,7 @@ def build(sources, aliases):
             w, l = player(match['winner']), player(match['loser'])
             if w['id'] == l['id']:
                 raise ValueError('Aliases merge both opponents in a match')
-            delta = change(w['elo'], l['elo'], match['winnerScore'], match['loserScore'])
+            delta = change(w['elo'], l['elo'])
             w['elo'] += delta
             l['elo'] -= delta
             w['wins'] += 1

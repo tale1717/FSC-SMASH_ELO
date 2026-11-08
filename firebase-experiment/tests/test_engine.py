@@ -1,3 +1,4 @@
+import copy
 import sys
 import unittest
 from pathlib import Path
@@ -29,10 +30,33 @@ class EngineTests(unittest.TestCase):
         events=self.events(); events[0]['group_stages_enabled']=True
         with self.assertRaises(ValueError): select(events)
     def test_elo_values(self):
-        self.assertEqual(change(1000,1000,2,0),64)
-        self.assertEqual(change(1000,1000,3,1),43)
-        self.assertEqual(change(1000,1000,3,2),22)
-        self.assertEqual(change(1200,1000,2,1),15)
+        self.assertEqual(change(1000,1000),32)
+        self.assertEqual(change(1200,1000),15)
+        self.assertEqual(change(1000,1200),49)
+        self.assertEqual(change(1000,1400),58)
+        self.assertEqual(change(1400,1000),6)
+    def test_scores_do_not_change_ratings_or_records(self):
+        source=self.source()
+        baseline=build([source],{})
+        for winner_score, loser_score in [(2,0),(2,1),(3,0),(3,1),(3,2)]:
+            with self.subTest(score=(winner_score,loser_score)):
+                variant=copy.deepcopy(source)
+                variant['matches'][0].update(winnerScore=winner_score,loserScore=loser_score)
+                result=build([variant],{})
+                self.assertEqual(result['players'],baseline['players'])
+                self.assertEqual(result['matches'][0]['change'],32)
+                self.assertEqual(result['matches'][0]['winnerScore'],winner_score)
+                self.assertEqual(result['matches'][0]['loserScore'],loser_score)
+    def test_full_replay_uses_updated_opponent_ratings(self):
+        first=self.source()
+        second=copy.deepcopy(first)
+        second['event'].update(id='2',started='2026-10-11T19:30:00-04:00')
+        second['matches'][0].update(winner='B',loser='A',winnerScore=3,loserScore=0)
+        result=build([second,first],{})
+        self.assertEqual([m['change'] for m in result['matches']],[32,38])
+        self.assertEqual({p['name']:p['elo'] for p in result['players']},{'A':994,'B':1006})
+        self.assertTrue(all(p['wins']==1 and p['losses']==1 for p in result['players']))
+        self.assertEqual(result,build([first,second],{}))
     def test_replay_idempotent_zero_sum(self):
         source=self.source()
         a=build([source],{}); b=build([source],{})
