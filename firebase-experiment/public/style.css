@@ -72,3 +72,20 @@
 .history-table td{overflow-wrap:anywhere}
 summary:focus-visible{outline:2px solid #d4e9bd;outline-offset:-3px}
 @media(max-width:520px){:root{--stock-size:22px}.opponent-icon{width:22px;min-width:22px;height:22px}.character-icon{width:22px;height:22px}.profile-tabs{gap:22px}.brand-title{font-size:26px}}
+
+.profile-tabs{flex-wrap:wrap}
+select{display:block;padding:10px;margin-top:6px;max-width:100%;font:inherit;background:#123526;color:inherit;border:1px solid #637268;border-radius:6px}
+.game-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px}
+.game-stat-table{table-layout:fixed;font-size:14px}
+.game-stat-table th:first-child{width:52%}
+.game-stat-table td,.game-stat-table th{overflow-wrap:anywhere;padding:14px 6px}
+.game-stat-table small{display:block;color:#b5cbbb;margin-top:4px}
+.game-stat-table td:not(:first-child){font-variant-numeric:tabular-nums}
+#set-title{font-size:clamp(28px,5vw,44px);letter-spacing:-1px;overflow-wrap:anywhere}
+#set-score{font-size:22px;color:#d4e9bd}
+.set-links,.game-sequence{display:flex;gap:14px;flex-wrap:wrap;margin:20px 0}
+.game-sequence span{padding:8px 12px;background:#123526;border-radius:6px}
+.game-record{border-bottom:1px solid #2d5540;padding:20px 0}
+.game-record p,#game-status{color:#b5cbbb;line-height:1.6}
+.history-table a{display:inline-block;min-width:62px}
+@media(max-width:700px){.game-stat-grid{grid-template-columns:1fr}.profile-tabs{gap:18px}}

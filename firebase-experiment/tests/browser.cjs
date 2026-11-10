@@ -10,6 +10,14 @@ const fixture = {
   schema: 1, updatedAt: '2026-11-08T06:02:48Z',
   players: names.map((name, i) => ({ id: `p${i}`, name, elo: 1400-i*20, wins: i===0?3:0, losses: i===0?1:0 })),
   tournaments: [10,2,1].map(n => ({ id: `e${n}`, name: `FSC Fall Bracket #${n}`, started: '2026-11-01T23:30:00Z', slug: `test-${n}`, sets: 1, skipped: 0 })),
+  gameReports: [
+    {tournament:'e10',match:'4',status:'confirmed',games:[
+      {number:1,stage:'Battlefield',winner:'p0',characters:{p0:'Kazuya',p3:'Mii Brawler'}},
+      {number:2,stage:'Smashville',winner:'p3',characters:{p0:'Mario',p3:'Mii Brawler'}},
+      {number:3,stage:'Battlefield',winner:'p0',characters:{p0:'Kazuya',p3:'Mario'}}
+    ]},
+    {tournament:'e1',match:'1',status:'pending',games:[]}
+  ],
   matches: [
     {id:'1',tournament:'e1',winner:'p0',loser:'p1',winnerScore:2,loserScore:0,change:32},
     {id:'2',tournament:'e2',winner:'p1',loser:'p0',winnerScore:3,loserScore:2,change:35},
@@ -86,6 +94,27 @@ const fixture = {
     assert.equal(await page.locator('#player-name').textContent(),'Ethanmagoo');
     assert.deepEqual(await page.locator('#event-history summary strong').allTextContents(),['FSC Fall Bracket #10','FSC Fall Bracket #2','FSC Fall Bracket #1']);
     assert.equal(await page.locator('#event-history tbody tr').count(),4);
+    await page.getByRole('tab',{name:'Stats',exact:true}).click();
+    assert.match(await page.locator('#game-coverage').textContent(),/3 confirmed games.*1 of 4 sets/);
+    assert.equal(await page.locator('#stage-rows tr').count(),2);
+    assert.match(await page.locator('#stage-rows tr').first().textContent(),/Battlefield2 games2–0100%/);
+    await page.locator('#character-filter').selectOption('Mario');
+    assert.equal(await page.locator('#stage-rows tr').count(),1);
+    assert.match(await page.locator('#stage-rows').textContent(),/Smashville1 games0–10%/);
+    await page.reload(); await page.waitForSelector('#player-content:visible');
+    assert(await page.locator('#stats-panel').isVisible());
+    await page.getByRole('tab',{name:'Set History',exact:true}).click();
+    await page.locator('#event-history a').filter({hasText:'View games'}).nth(1).click();
+    await page.waitForSelector('#set-content:visible');
+    assert.equal(await page.locator('.game-record').count(),3);
+    assert.match(await page.locator('#set-score').textContent(),/Ethanmagoo wins 2–1/);
+    assert.match(await page.locator('.game-record').nth(1).textContent(),/Ethanmagoo · Mario/);
+    for(const width of [390,320]) {
+      await page.setViewportSize({width,height:900});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    }
+    await page.locator('#back-player').click(); await page.waitForSelector('#player-content:visible');
+    await page.setViewportSize({width:1440,height:1000});
     await page.getByRole('tab',{name:'Head-to-Head',exact:true}).click();
     assert(await page.locator('#h2h-panel').isVisible());assert(!(await page.locator('#history-panel').isVisible()));
     const opponent = page.locator('#h2h-rows tr').filter({hasText:'Wildogz'});
@@ -105,6 +134,12 @@ const fixture = {
     await page.goto(origin+'/player.html?id=missing');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Player not found'));
     await page.goto(origin+'/player.html?id=p11');await page.waitForSelector('#player-content:visible');
     assert.match(await page.locator('#event-history').textContent(),/No completed sets/);
+    await page.getByRole('tab',{name:'Stats',exact:true}).click();
+    assert(await page.locator('#stats-empty').isVisible());
+    await page.goto(origin+'/set.html?tournament=e2&match=2'); await page.waitForSelector('#set-content:visible');
+    assert.match(await page.locator('#game-status').textContent(),/unavailable/);
+    await page.goto(origin+'/set.html?tournament=wrong&match=4');
+    await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Set not found'));
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('PASS: all 39 icons; double-digit alignment; desktop/mobile geometry; navigation; numerical tournament order; H2H totals, matchups, tabs, reload and empty profiles.');
   } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }

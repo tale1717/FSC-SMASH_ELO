@@ -15,8 +15,9 @@
 <div class="profile-tabs" role="tablist" aria-label="Player records">
 <button id="history-tab" type="button" role="tab" aria-selected="true" aria-controls="history-panel">Set History</button>
 <button id="h2h-tab" type="button" role="tab" aria-selected="false" aria-controls="h2h-panel" tabindex="-1">Head-to-Head</button>
+<button id="stats-tab" type="button" role="tab" aria-selected="false" aria-controls="stats-panel" tabindex="-1">Stats</button>
 </div>
-<section id="history-panel" role="tabpanel" aria-labelledby="history-tab"><div class="section-head"><h2>Set history</h2><span class="section-note">Tournament order · First to latest</span></div><div id="event-history"></div></section>
+<section id="history-panel" role="tabpanel" aria-labelledby="history-tab"><div class="section-head"><h2>Set history</h2><span class="section-note">Newest tournaments first</span></div><div id="event-history"></div></section>
 <section id="h2h-panel" role="tabpanel" aria-labelledby="h2h-tab" hidden>
 <div class="section-head"><h2>Head-to-head</h2><span class="section-note">All tournaments · Sets, not games</span></div>
 <p class="section-note">Select an opponent to view your sets against them.</p>
@@ -24,6 +25,14 @@
 <p id="h2h-empty" hidden>No completed sets yet.</p>
 <section id="rival-details" hidden><div class="section-head"><h2 id="rival-title" tabindex="-1"></h2><button type="button" id="close-rival">Close matchup</button></div><p id="rival-record"></p><div id="rival-events"></div></section>
 </section>
+<section id="stats-panel" role="tabpanel" aria-labelledby="stats-tab" hidden>
+<div class="section-head"><h2>Game statistics</h2><label>Playing as<select id="character-filter"><option value="">All characters</option></select></label></div>
+<p id="game-coverage" class="section-note"></p><p id="filtered-games" class="section-note" role="status"></p>
+<p id="stats-empty">No confirmed game details yet. Stage and character records will appear once game reports are recorded and confirmed. Historical set scores alone do not contain this information.</p>
+<div id="game-stat-tables" class="game-stat-grid" hidden>
+<div><h3>Stages played</h3><table class="game-stat-table"><thead><tr><th scope="col">Stage</th><th scope="col">W–L</th><th scope="col">Win rate</th></tr></thead><tbody id="stage-rows"></tbody></table></div>
+<div><h3>Against characters</h3><table class="game-stat-table"><thead><tr><th scope="col">Opponent character</th><th scope="col">W–L</th><th scope="col">Win rate</th></tr></thead><tbody id="character-rows"></tbody></table></div>
+</div><p class="section-note">Game wins and losses · Only confirmed details matching official set results count. Elo still updates once per set.</p></section>
 <footer class="profile-footer">Ratings start at 1000. Fixed K = 64 per set. Game scores do not affect Elo.</footer>
 </div>
 </main><script type="module" src="player.js"></script>

@@ -1,6 +1,9 @@
+import { renderStats } from './player-stats.js';
+import { setUrl } from './game-records.js';
 import { $, text, signed, eventDate, characterIcon, orderedTournaments, headToHead, readDashboard } from './common.js';
 
-const tabs = ['history', 'h2h'];
+const tabs = ['history', 'h2h', 'stats'];
+const hashPanel = () => tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'history';
 function selectPanel(name, updateUrl = true) {
   for (const key of tabs) {
     $(`${key}-panel`).hidden = key !== name;
@@ -13,14 +16,14 @@ for (const [index, key] of tabs.entries()) {
   $(`${key}-tab`).addEventListener('click', () => selectPanel(key));
   $(`${key}-tab`).addEventListener('keydown', event => {
     let target;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') target = tabs[1 - index];
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') target = tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
     if (event.key === 'Home') target = tabs[0];
     if (event.key === 'End') target = tabs.at(-1);
     if (!target) return;
     event.preventDefault(); selectPanel(target); $(`${target}-tab`).focus();
   });
 }
-window.addEventListener('hashchange', () => selectPanel(location.hash === '#h2h' ? 'h2h' : 'history', false));
+window.addEventListener('hashchange', () => selectPanel(hashPanel(), false));
 
 function eventBlock(event, matches, player, players, open = false, showOpponent = true) {
   const wins = matches.filter(match => match.winner === player.id).length;
@@ -34,7 +37,7 @@ function eventBlock(event, matches, player, players, open = false, showOpponent 
   const wrap = document.createElement('div'); wrap.className = 'scroll';
   const table = document.createElement('table'); table.className = 'history-table';
   const head = document.createElement('thead'), labels = document.createElement('tr');
-  (showOpponent ? ['Result', 'Opponent', 'Score', 'Elo change'] : ['Result', 'Score', 'Elo change']).forEach(label => {
+  (showOpponent ? ['Result', 'Opponent', 'Score', 'Elo change', 'Details'] : ['Result', 'Score', 'Elo change', 'Details']).forEach(label => {
     const th = text('th', label); th.scope = 'col'; labels.append(th);
   });
   head.append(labels); table.append(head);
@@ -45,6 +48,8 @@ function eventBlock(event, matches, player, players, open = false, showOpponent 
     if (showOpponent) row.append(text('td', players.get(won ? match.loser : match.winner)?.name || 'Unknown player'));
     row.append(text('td', won ? `${match.winnerScore}–${match.loserScore}` : `${match.loserScore}–${match.winnerScore}`),
       text('td', signed(won ? match.change : -match.change)));
+    const cell = document.createElement('td'), link = text('a', 'View games');
+    link.href = setUrl(match, player.id); cell.append(link); row.append(cell);
     body.append(row);
   }
   table.append(body); wrap.append(table); details.append(wrap);
@@ -74,6 +79,7 @@ async function load() {
     events.forEach((event, index) => $('event-history').append(eventBlock(event,
       matches.filter(match => match.tournament === event.id), player, players, index === 0)));
     if (!events.length) $('event-history').append(text('p', 'No completed sets yet.'));
+    renderStats(data, player);
     const records = headToHead(matches, id);
     let selectedButton;
     const opponentIds = Array.from(records.keys()).sort((a, b) => (players.get(a)?.name || '').localeCompare(players.get(b)?.name || ''));
@@ -102,7 +108,7 @@ async function load() {
     }
     $('h2h-empty').hidden = records.size !== 0;
     $('close-rival').addEventListener('click', () => { $('rival-details').hidden = true; selectedButton?.focus(); });
-    selectPanel(location.hash === '#h2h' ? 'h2h' : 'history', false);
+    selectPanel(hashPanel(), false);
     $('player-content').hidden = false;
     $('status').textContent = `Last published: ${new Date(data.updatedAt).toLocaleString()}`;
   } catch {
