@@ -84,7 +84,7 @@ const fixture = {
     await page.waitForSelector('#player-content:visible');
     assert.match(page.url(),/player.html\?id=p0/);
     assert.equal(await page.locator('#player-name').textContent(),'Ethanmagoo');
-    assert.deepEqual(await page.locator('#event-history summary strong').allTextContents(),['FSC Fall Bracket #1','FSC Fall Bracket #2','FSC Fall Bracket #10']);
+    assert.deepEqual(await page.locator('#event-history summary strong').allTextContents(),['FSC Fall Bracket #10','FSC Fall Bracket #2','FSC Fall Bracket #1']);
     assert.equal(await page.locator('#event-history tbody tr').count(),4);
     await page.getByRole('tab',{name:'Head-to-Head',exact:true}).click();
     assert(await page.locator('#h2h-panel').isVisible());assert(!(await page.locator('#history-panel').isVisible()));
@@ -92,7 +92,7 @@ const fixture = {
     assert.deepEqual(await opponent.locator('td').allTextContents(),['Wildogz','2','1','67%']);
     await opponent.locator('button').click();
     assert.equal(await page.locator('#rival-events tbody tr').count(),3);
-    assert.deepEqual(await page.locator('#rival-events summary strong').allTextContents(),['FSC Fall Bracket #1','FSC Fall Bracket #2','FSC Fall Bracket #10']);
+    assert.deepEqual(await page.locator('#rival-events summary strong').allTextContents(),['FSC Fall Bracket #10','FSC Fall Bracket #2','FSC Fall Bracket #1']);
     await page.locator('#close-rival').click();assert(!(await page.locator('#rival-details').isVisible()));
     await page.reload();await page.waitForSelector('#player-content:visible');assert(await page.locator('#h2h-panel').isVisible());
     await page.locator('#h2h-tab').focus();await page.keyboard.press('ArrowLeft');assert(await page.locator('#history-panel').isVisible());
