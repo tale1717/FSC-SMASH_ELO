@@ -59,6 +59,7 @@ const fixture = {
     assert.equal(assets.length,39);assert(assets.every(x=>x.ok));
     for (const width of [1440,768,390,320]) {
       await page.setViewportSize({width,height:1000});
+      await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       await page.waitForFunction(() => {
         const centers=Array.from(document.querySelectorAll('.stock-icon'),img=>{const r=img.getBoundingClientRect();return r.x+r.width/2;});
         return Math.max(...centers)-Math.min(...centers)<1;
@@ -71,7 +72,7 @@ const fixture = {
         })};
       });
       assert.equal(geometry.overflow,false,`Page overflow at ${width}`);
-      assert(geometry.rows.every(row=>row.numberRight<=row.iconLeft&&row.iconRight<=row.nameLeft),`Icon overlap at ${width}`);
+      assert(geometry.rows.every(row=>row.numberRight<=row.iconLeft&&row.iconRight<=row.nameLeft),`Icon overlap at ${width}: ${JSON.stringify(geometry.rows)}`);
     }
     await page.setViewportSize({width:1440,height:1000});
     await page.locator('#search').fill('Pupusa');

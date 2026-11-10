@@ -55,7 +55,7 @@
  @media(max-width:520px){.h2h-table{font-size:14px}.h2h-table td,.h2h-table th{padding:12px 5px}.h2h-table th{font-size:10px;letter-spacing:0.5px}.opponent-button{gap:6px}.opponent-button img{width:22px;height:22px}}
 :root{--stock-size:30px}
 [hidden]{display:none!important}
-.rank-cell{position:relative}
+.rank-cell{position:relative;min-width:64px}
 .stock-icon{position:absolute;top:50%;transform:translate(-50%,-50%);width:var(--stock-size);height:var(--stock-size);object-fit:contain;pointer-events:none}
 .player-link{text-decoration:none}
 .player-link:hover{text-decoration:underline}
