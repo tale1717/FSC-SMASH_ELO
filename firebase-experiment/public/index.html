@@ -10,9 +10,9 @@
 <p id="status" role="status">Loading rankings…</p>
 <section class="stats" aria-label="Season totals"><div><strong id="players-count">—</strong>players</div><div><strong id="events-count">—</strong>tournaments</div><div><strong id="sets-count">—</strong>sets played</div></section>
 <section><div class="section-head"><h2>Fall rankings</h2><label>Find a player <input id="search" type="search" placeholder="Player name" disabled></label></div>
-<div class="scroll"><table><thead><tr><th>Rank</th><th>Player</th><th>Elo</th><th>Sets W–L</th></tr></thead><tbody id="rankings"></tbody></table></div><p id="empty" hidden>No players match your search.</p></section>
-<section id="profile" hidden tabindex="-1"><h2 id="profile-name"></h2><p id="profile-summary"></p><h3>Head-to-head</h3><div class="scroll"><table><thead><tr><th>Opponent</th><th>Won</th><th>Lost</th></tr></thead><tbody id="opponents"></tbody></table></div><h3>Set history</h3><ul id="history"></ul></section>
+<div class="scroll" id="rankings-scroll"><table id="rankings-table"><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Elo</th><th scope="col">Sets W–L</th></tr></thead><tbody id="rankings"></tbody></table></div><p id="empty" hidden>No players match your search.</p></section>
 <section><h2>Tournaments</h2><ul id="tournaments"></ul></section>
 <footer>Ratings start at 1000. Fixed K = 64 per set. Game scores do not affect Elo. DQs recorded with negative scores are excluded. Ratings update after a successful import.</footer>
 </main><script type="module" src="app.js"></script>
 </body></html>
+

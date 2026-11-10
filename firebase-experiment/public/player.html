@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player records · FSC Smash Elo</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="profile-header"><span class="eyebrow">FARMINGDALE • SUPER SMASH BROS. ULTIMATE</span><p class="brand-title"><a href="index.html">FSC Smash Elo</a></p></header>
+<main>
+<nav class="back-nav" aria-label="Player navigation"><a id="back-rankings" href="index.html">← Back to rankings</a></nav>
+<p id="status" role="status">Loading player records…</p>
+<div id="player-content" hidden>
+<div class="player-heading"><span id="player-icon"></span><div><p id="player-rank"></p><h1 id="player-name"></h1></div></div>
+<section class="stats" aria-label="Player totals"><div><strong id="player-elo">—</strong>Elo</div><div><strong id="player-record">—</strong>sets W–L</div><div><strong id="player-events">—</strong>tournaments with sets</div></section>
+<div class="profile-tabs" role="tablist" aria-label="Player records">
+<button id="history-tab" type="button" role="tab" aria-selected="true" aria-controls="history-panel">Set History</button>
+<button id="h2h-tab" type="button" role="tab" aria-selected="false" aria-controls="h2h-panel" tabindex="-1">Head-to-Head</button>
+</div>
+<section id="history-panel" role="tabpanel" aria-labelledby="history-tab"><div class="section-head"><h2>Set history</h2><span class="section-note">Tournament order · First to latest</span></div><div id="event-history"></div></section>
+<section id="h2h-panel" role="tabpanel" aria-labelledby="h2h-tab" hidden>
+<div class="section-head"><h2>Head-to-head</h2><span class="section-note">All tournaments · Sets, not games</span></div>
+<p class="section-note">Select an opponent to view your sets against them.</p>
+<div class="scroll"><table class="h2h-table"><thead><tr><th scope="col">Opponent</th><th scope="col">Won</th><th scope="col">Lost</th><th scope="col">Win rate</th></tr></thead><tbody id="h2h-rows"></tbody></table></div>
+<p id="h2h-empty" hidden>No completed sets yet.</p>
+<section id="rival-details" hidden><div class="section-head"><h2 id="rival-title" tabindex="-1"></h2><button type="button" id="close-rival">Close matchup</button></div><p id="rival-record"></p><div id="rival-events"></div></section>
+</section>
+<footer class="profile-footer">Ratings start at 1000. Fixed K = 64 per set. Game scores do not affect Elo.</footer>
+</div>
+</main><script type="module" src="player.js"></script>
+</body></html>

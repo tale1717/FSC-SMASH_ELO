@@ -1,74 +1,75 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
-import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
-import { firebaseConfig } from './firebase-config.js';
+import { $, text, characterIcon, playerUrl, readDashboard, eventDate } from './common.js';
 
-const $ = id => document.getElementById(id);
-const text = (tag, value) => { const node = document.createElement(tag); node.textContent = value; return node; };
-let data;
-function showPlayer(player) {
-  $('profile').hidden = false;
-  $('profile-name').textContent = player.name;
-  $('profile-summary').textContent = `${player.elo} Elo · ${player.wins} wins · ${player.losses} losses`;
-  const records = new Map();
-  const history = data.matches.filter(m => m.winner === player.id || m.loser === player.id);
-  for (const match of history) {
-    const won = match.winner === player.id;
-    const opponent = won ? match.loser : match.winner;
-    const entry = records.get(opponent) || {wins:0, losses:0};
-    entry[won ? 'wins' : 'losses']++;
-    records.set(opponent, entry);
+let rows = [];
+function alignIcons() {
+  if (!rows.length) return;
+  const table = $('rankings-table');
+  table.querySelector('colgroup')?.remove();
+  rows.forEach(row => { row.hidden = false; });
+  const widths = Array.from(rows[0].cells, cell => cell.getBoundingClientRect().width);
+  const total = widths.reduce((sum, width) => sum + width, 0);
+  if (total) {
+    const group = document.createElement('colgroup');
+    widths.forEach(width => {
+      const col = document.createElement('col');
+      col.style.width = `${width / total * 100}%`;
+      group.append(col);
+    });
+    table.prepend(group);
+    const numberRight = Math.max(...rows.map(row => row.querySelector('.rank-number').getBoundingClientRect().right));
+    const playerLeft = rows[0].querySelector('.player-link').getBoundingClientRect().left;
+    const center = (numberRight + playerLeft) / 2;
+    rows.forEach(row => {
+      const icon = row.querySelector('.stock-icon');
+      if (icon) icon.style.left = `${center - row.cells[0].getBoundingClientRect().left}px`;
+    });
   }
-  $('opponents').replaceChildren();
-  for (const opponent of data.players.filter(p => records.has(p.id)).sort((a,b) => a.name.localeCompare(b.name))) {
-    const record = records.get(opponent.id), row = document.createElement('tr');
-    row.append(text('td',opponent.name), text('td',record.wins), text('td',record.losses));
-    $('opponents').append(row);
-  }
-  $('history').replaceChildren();
-  for (const match of history.slice().reverse()) {
-    const won = match.winner === player.id;
-    const opponent = data.players.find(p => p.id === (won ? match.loser : match.winner));
-    const event = data.tournaments.find(t => t.id === match.tournament);
-    $('history').append(text('li',`${won ? 'W' : 'L'} ${won ? match.winnerScore : match.loserScore}–${won ? match.loserScore : match.winnerScore} vs ${opponent.name} · ${event.name} · ${won ? '+' : '−'}${match.change} Elo`));
-  }
-  $('profile').focus();
-}
-function renderPlayers() {
   const query = $('search').value.trim().toLocaleLowerCase();
-  $('rankings').replaceChildren();
-  data.players.forEach((player, index) => {
-    if (!player.name.toLocaleLowerCase().includes(query)) return;
-    const row = document.createElement('tr'), name = document.createElement('td');
-    const button = text('button',player.name); button.type='button';
-    button.addEventListener('click', () => showPlayer(player)); name.append(button);
-    row.append(text('td',index+1),name,text('td',player.elo),text('td',`${player.wins}–${player.losses}`));
-    $('rankings').append(row);
-  });
-  $('empty').hidden = $('rankings').children.length > 0;
+  rows.forEach(row => { row.hidden = !row.dataset.name.includes(query); });
+  $('empty').hidden = rows.some(row => !row.hidden);
 }
+
 async function load() {
   try {
-    const db = getFirestore(initializeApp(firebaseConfig));
-    const snapshot = await getDoc(doc(db,'public','dashboard'));
-    if (!snapshot.exists()) { $('status').textContent='No tournaments have been imported yet.'; return; }
-    data = snapshot.data();
-    if (data.schema !== 1 || !Array.isArray(data.players) || !Array.isArray(data.matches) || !Array.isArray(data.tournaments)) throw new Error('Invalid snapshot');
+    const data = await readDashboard();
+    if (!data) { $('status').textContent = 'No tournaments have been imported yet.'; return; }
     $('status').textContent = `Last published: ${new Date(data.updatedAt).toLocaleString()}`;
-    $('players-count').textContent=data.players.length;
-    $('events-count').textContent=data.tournaments.length;
-    $('sets-count').textContent=data.matches.length;
-    $('search').disabled=false;
-    $('search').addEventListener('input',renderPlayers);
-    renderPlayers();
+    $('players-count').textContent = data.players.length;
+    $('events-count').textContent = data.tournaments.length;
+    $('sets-count').textContent = data.matches.length;
+    const fragment = document.createDocumentFragment();
+    rows = data.players.map((player, index) => {
+      const row = document.createElement('tr');
+      row.dataset.name = player.name.toLocaleLowerCase();
+      const rank = document.createElement('td'); rank.className = 'rank-cell';
+      const number = text('span', index + 1); number.className = 'rank-number'; rank.append(number);
+      const icon = characterIcon(player.name); if (icon) rank.append(icon);
+      const name = document.createElement('td'), link = text('a', player.name);
+      link.href = playerUrl(player.id); link.className = 'player-link'; name.append(link);
+      row.append(rank, name, text('td', player.elo), text('td', `${player.wins}–${player.losses}`));
+      fragment.append(row);
+      return row;
+    });
+    $('rankings').replaceChildren(fragment);
+    $('search').disabled = false;
+    $('search').addEventListener('input', alignIcons);
+    alignIcons();
+    let previousWidth;
+    new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width !== previousWidth) {
+        previousWidth = entry.contentRect.width;
+        alignIcons();
+      }
+    }).observe($('rankings-scroll'));
     for (const event of data.tournaments.slice().reverse()) {
-      const item = document.createElement('li'), link = text('a',event.name);
-      link.href=`https://challonge.com/${encodeURIComponent(event.slug)}`;
-      link.target='_blank'; link.rel='noopener noreferrer';
-      item.append(link,document.createTextNode(` · ${event.sets} sets · ${new Date(event.started).toLocaleDateString()}`));
+      const item = document.createElement('li'), link = text('a', event.name);
+      link.href = `https://challonge.com/${encodeURIComponent(event.slug)}`;
+      link.target = '_blank'; link.rel = 'noopener noreferrer';
+      item.append(link, document.createTextNode(` · ${event.sets} sets · ${eventDate(event.started)}`));
       $('tournaments').append(item);
     }
   } catch {
-    $('status').textContent='Rankings could not load. Check your connection, Firebase configuration, and published Firestore rules, then refresh.';
+    $('status').textContent = 'Rankings could not load. Check your connection, Firebase configuration, and published Firestore rules, then refresh.';
   }
 }
 load();
