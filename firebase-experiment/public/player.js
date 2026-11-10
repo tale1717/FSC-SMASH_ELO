@@ -1,5 +1,5 @@
 import { renderStats } from './player-stats.js';
-import { setUrl } from './game-records.js';
+import { setUrl, playerGames } from './game-records.js';
 import { $, text, signed, eventDate, characterIcon, orderedTournaments, headToHead, readDashboard } from './common.js';
 
 const tabs = ['history', 'h2h', 'stats'];
@@ -80,6 +80,7 @@ async function load() {
       matches.filter(match => match.tournament === event.id), player, players, index === 0)));
     if (!events.length) $('event-history').append(text('p', 'No completed sets yet.'));
     renderStats(data, player);
+    const recordedGames = playerGames(data, id);
     const records = headToHead(matches, id);
     let selectedButton;
     const opponentIds = Array.from(records.keys()).sort((a, b) => (players.get(a)?.name || '').localeCompare(players.get(b)?.name || ''));
@@ -94,7 +95,10 @@ async function load() {
       button.addEventListener('click', () => {
         selectedButton = button;
         $('rival-title').textContent = `${player.name} vs ${opponent.name}`;
-        $('rival-record').textContent = `${record.wins} wins · ${record.losses} losses · ${winRate} win rate`;
+        const games = recordedGames.filter(game => game.opponent === opponentId);
+        const gameWins = games.filter(game => game.won).length;
+        $('rival-record').textContent = `${record.wins} set wins · ${record.losses} set losses · ${winRate} set win rate · ` +
+          (games.length ? `${gameWins}–${games.length - gameWins} recorded games` : 'No confirmed game details');
         $('rival-events').replaceChildren();
         events.forEach(event => {
           const rivalry = matches.filter(match => match.tournament === event.id && (match.winner === opponentId || match.loser === opponentId));
