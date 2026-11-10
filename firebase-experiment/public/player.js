@@ -61,7 +61,9 @@ async function load() {
     if (!player) { $('status').textContent = 'Player not found. Their tag may have been merged or changed. Return to rankings to find their current profile.'; return; }
     const players = new Map(data.players.map(person => [person.id, person]));
     const matches = data.matches.filter(match => match.winner === id || match.loser === id);
-    const events = orderedTournaments(data.tournaments).filter(event => matches.some(match => match.tournament === event.id));
+    const events = orderedTournaments(data.tournaments).reverse()
+      .sort((a, b) => (Date.parse(b.started) || 0) - (Date.parse(a.started) || 0))
+      .filter(event => matches.some(match => match.tournament === event.id));
     document.title = `${player.name} · FSC Smash Elo`;
     $('player-name').textContent = player.name;
     $('player-rank').textContent = `Rank #${data.players.indexOf(player) + 1} · Fall season`;
