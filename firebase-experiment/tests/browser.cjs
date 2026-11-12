@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
 const names = ['Ethanmagoo','Wildogz','Thomas','Louie','SMT','Alucard','Never','Nation','SoulArts','VB3','Tanuki','Pupusa'];
 const fixture = {
   schema: 1, updatedAt: '2026-11-08T06:02:48Z',
-  players: names.map((name, i) => ({ id: `p${i}`, name, elo: 1400-i*20, wins: i===0?3:0, losses: i===0?1:0 })),
+  players: names.map((name, i) => ({ id: `p${i}`, name, tournamentCount: [5,3,5,5,2,4,4,4,1,4,4,2][i], elo: 1400-i*20, wins: i===0?3:0, losses: i===0?1:0 })),
   tournaments: [10,2,1].map(n => ({ id: `e${n}`, name: `FSC Fall Bracket #${n}`, started: '2026-11-01T23:30:00Z', slug: `test-${n}`, sets: 1, skipped: 0 })),
   gameReports: [
     {tournament:'e10',match:'4',status:'confirmed',games:[
@@ -51,7 +51,12 @@ const fixture = {
   }));
   try {
     await page.goto(origin);
-    await page.waitForFunction(() => document.querySelectorAll('#rankings tr').length === 12);
+    await page.waitForFunction(() => document.querySelectorAll('#rankings tr').length === 8);
+    assert.equal(await page.locator('#official-rankings').getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('#rankings tr').filter({hasText:'Wildogz'}).count(),0);
+    assert.equal(await page.locator('#rankings tr').filter({hasText:'Thomas'}).locator('.rank-number').textContent(),'2');
+    await page.locator('#all-rankings').click();
+    assert.equal(await page.locator('#rankings tr').filter({hasText:'Wildogz'}).locator('.rank-number').textContent(),'2');
     assert.equal(await page.locator('#players-count').textContent(), '12');
     assert.equal(await page.locator('#rankings tr').count(),12);
     assert.equal(await page.locator('.stock-icon').count(),12);
@@ -130,6 +135,9 @@ const fixture = {
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }
     await page.locator('#back-rankings').click();await page.waitForSelector('#rankings tr');
+    assert.equal(await page.locator('#official-rankings').getAttribute('aria-pressed'),'true');
+    await page.locator('#search').fill('Wildogz'); assert(await page.locator('#empty').isVisible());
+    await page.locator('#all-rankings').click(); assert.equal(await page.locator('#rankings tr:visible').count(),1);
     await page.goto(origin+'/player.html');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Choose'));
     await page.goto(origin+'/player.html?id=missing');await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Player not found'));
     await page.goto(origin+'/player.html?id=p11');await page.waitForSelector('#player-content:visible');

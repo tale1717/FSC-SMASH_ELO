@@ -1,3 +1,4 @@
+import { rankedPlayers, isQualified, tournamentCount } from './eligibility.js';
 import { renderStats } from './player-stats.js';
 import { setUrl, playerGames } from './game-records.js';
 import { $, text, signed, eventDate, characterIcon, orderedTournaments, headToHead, readDashboard } from './common.js';
@@ -71,11 +72,15 @@ async function load() {
       .filter(event => matches.some(match => match.tournament === event.id));
     document.title = `${player.name} · FSC Smash Elo`;
     $('player-name').textContent = player.name;
-    $('player-rank').textContent = `Rank #${data.players.indexOf(player) + 1} · Fall season`;
+    const attendance = tournamentCount(player);
+    const allRank = data.players.indexOf(player) + 1;
+    const officialRank = rankedPlayers(data.players).findIndex(person => person.id === id) + 1;
+    $('player-rank').textContent = isQualified(player) ? `Official rank #${officialRank} · All-player rank #${allRank} · Fall season` :
+      `Not officially ranked · All-player rank #${allRank} · ${attendance === null ? 'Attendance awaiting import' : `${attendance}/4 tournaments`}`;
     const icon = characterIcon(player.name, 'profile-icon'); if (icon) $('player-icon').append(icon);
     $('player-elo').textContent = player.elo;
     $('player-record').textContent = `${player.wins}–${player.losses}`;
-    $('player-events').textContent = events.length;
+    $('player-events').textContent = attendance === null ? '—' : attendance;
     events.forEach((event, index) => $('event-history').append(eventBlock(event,
       matches.filter(match => match.tournament === event.id), player, players, index === 0)));
     if (!events.length) $('event-history').append(text('p', 'No completed sets yet.'));

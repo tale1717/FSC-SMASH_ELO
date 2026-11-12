@@ -122,6 +122,7 @@ def validate_size(document):
 
 def build(sources, aliases):
     players = {}
+    appearances = {}
     history = []
     events = []
     source_ids = set()
@@ -131,6 +132,7 @@ def build(sources, aliases):
         pid = hashlib.sha256(name.encode()).hexdigest()
         if pid not in players:
             players[pid] = dict(id=pid, name=name, elo=1000, wins=0, losses=0)
+            appearances[pid] = set()
         return players[pid]
     ordered = sorted(sources, key=lambda s: (instant(s['event']['started']), int(s['event']['id'])))
     for source in ordered:
@@ -139,7 +141,7 @@ def build(sources, aliases):
             raise ValueError('Duplicate tournament source')
         source_ids.add(event['id'])
         for name in source['participants']:
-            player(name)
+            appearances[player(name)['id']].add(event['id'])
         for match in source['matches']:
             key = (event['id'], match['id'])
             if key in match_ids:
@@ -148,6 +150,8 @@ def build(sources, aliases):
             w, l = player(match['winner']), player(match['loser'])
             if w['id'] == l['id']:
                 raise ValueError('Aliases merge both opponents in a match')
+            appearances[w['id']].add(event['id'])
+            appearances[l['id']].add(event['id'])
             delta = change(w['elo'], l['elo'])
             w['elo'] += delta
             l['elo'] -= delta
@@ -156,6 +160,8 @@ def build(sources, aliases):
             history.append(dict(id=match['id'], tournament=event['id'], winner=w['id'], loser=l['id'],
                                 winnerScore=match['winnerScore'], loserScore=match['loserScore'], change=delta))
         events.append(dict(**event, sets=len(source['matches']), skipped=source['skipped']))
+    for pid, record in players.items():
+        record['tournamentCount'] = len(appearances[pid])
     result = dict(schema=1, players=sorted(players.values(), key=lambda p: (-p['elo'], p['name'])),
                   tournaments=events, matches=history)
     validate_size(result)

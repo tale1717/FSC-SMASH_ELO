@@ -89,3 +89,13 @@ select{display:block;padding:10px;margin-top:6px;max-width:100%;font:inherit;bac
 .game-record p,#game-status{color:#b5cbbb;line-height:1.6}
 .history-table a{display:inline-block;min-width:62px}
 @media(max-width:700px){.game-stat-grid{grid-template-columns:1fr}.profile-tabs{gap:18px}}
+
+.ranking-switch{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 22px}
+.ranking-switch button{border:1px solid #52735f;border-radius:7px;padding:12px 16px;min-height:44px;background:#123526;color:#d4e9bd}
+.ranking-switch button[aria-pressed="true"]{background:#d4e9bd;color:#173322}
+.ranking-switch button:disabled{opacity:.6;cursor:default}
+.attendance-cell{font-variant-numeric:tabular-nums;white-space:nowrap}
+.attendance-cell small{display:block;color:#b5cbbb;font-size:12px;margin-top:4px}
+.attendance-cell .qualified{color:#d4e9bd}
+#rankings-table th:last-child,#rankings-table td:last-child{text-align:right}
+@media(max-width:520px){.ranking-switch{gap:8px}.ranking-switch button{flex:1;padding:10px;font-size:14px}#rankings-table{font-size:12px}#rankings-table td,#rankings-table th{padding-left:4px;padding-right:4px}#rankings-table th{font-size:10px;letter-spacing:0} .attendance-cell small{font-size:11px}}

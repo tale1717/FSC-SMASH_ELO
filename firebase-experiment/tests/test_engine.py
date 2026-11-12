@@ -14,6 +14,19 @@ class EngineTests(unittest.TestCase):
         participants=[dict(id=1,name='A'),dict(id=2,name='B')]
         match=dict(id=10,state='complete',winner_id=1,loser_id=2,player1_id=1,player2_id=2,scores_csv='2-1')
         return normalize(event,participants,[match])
+    def test_attendance_distinct_tournaments_and_aliases(self):
+        sources=[]
+        for i in range(4):
+            source=copy.deepcopy(self.source())
+            source['event'].update(id=str(i+1),started=f'2026-10-{10+i}T19:30:00-04:00')
+            source['participants']=['A','Alt','B','Registered']
+            source['matches'].append(dict(source['matches'][0],id='11'))
+            sources.append(source)
+        result=build(sources,{'Alt':'A'})
+        self.assertEqual({p['name']:p['tournamentCount'] for p in result['players']},{'A':4,'B':4,'Registered':4})
+        self.assertEqual(len(result['matches']),8)
+        self.assertEqual(build(sources[:3],{'Alt':'A'})['players'][0]['tournamentCount'],3)
+
     def test_selection(self):
         events=self.events()
         for i,(name,state,game,date) in enumerate([
