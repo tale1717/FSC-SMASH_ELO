@@ -29,3 +29,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node firebase-experiment/tests/browser.cjs
 
+
+      - run: node firebase-experiment/tests/match-demo.cjs
