@@ -78,23 +78,52 @@ export async function collection(path, kind, key, fetcher, signal, filters = {})
   const rows = [], seen = new Set();
   for (let page = 1; page <= 12; page++) {
     const query = new URLSearchParams({ ...filters, page: String(page), per_page: '25' });
-    const response = await fetcher('https://api.challonge.com/v2.1/' + path + '.json?' + query, {
-      method: 'GET', redirect: 'error', signal,
-      headers: { Authorization: key, 'Authorization-Type': 'v1', Accept: 'application/json',
-        'Content-Type': 'application/vnd.api+json',
-        'User-Agent': 'FSC-Smash-Elo/1.0 (+https://github.com/tale1717/FSC-SMASH_ELO)' }
-    });
-    if (!response.ok) {
-      const hints = { 401: 'Challonge rejected the API key.', 403: 'Challonge denied this request; account permissions or a security block may be involved.',
-        429: 'Challonge request limit reached. Wait before refreshing.' };
-      throw new ChallongeError(hints[response.status] || 'Challonge request failed.', response.status === 429 ? 429 : 502);
+    const context = path + '.json, page ' + page;
+    let response;
+    try {
+      response = await fetcher('https://api.challonge.com/v2.1/' + path + '.json?' + query, {
+        method: 'GET', redirect: 'manual', signal,
+        headers: { Authorization: key, 'Authorization-Type': 'v1', Accept: 'application/json',
+          'Content-Type': 'application/vnd.api+json',
+          'User-Agent': 'FSC-Smash-Elo/1.0 (+https://github.com/tale1717/FSC-SMASH_ELO)' }
+      });
+    } catch (error) {
+      if (signal?.aborted || ['TimeoutError', 'AbortError'].includes(error?.name)) {
+        throw new ChallongeError('Challonge read timed out (' + context + ').', 504);
+      }
+      throw new ChallongeError('Worker could not connect to Challonge (' + context + '). No HTTP response was received.');
     }
-    const payload = await response.json();
-    if (payload.errors || !Array.isArray(payload.data)) throw new ChallongeError('Unexpected Challonge response.');
+    // Never forward the credential to a redirect destination.
+    if (response.status >= 300 && response.status < 400) {
+      throw new ChallongeError('Challonge returned HTTP ' + response.status + ' redirect (' + context + '). Redirect was not followed.');
+    }
+    let body;
+    try { body = await response.text(); }
+    catch {
+      throw new ChallongeError('Challonge response body could not be read (' + context + ').',
+        signal?.aborted ? 504 : 502);
+    }
+    const challenge = /cf-chl-|just a moment|cloudflare/i.test(body.slice(0, 16384));
+    if (!response.ok) {
+      const hints = { 401: 'Check the Challonge account API key.', 403: 'Check account access.',
+        429: 'Request limit reached. Wait before refreshing.' };
+      throw new ChallongeError('Challonge HTTP ' + response.status + ' (' + context + '). ' +
+        (challenge ? 'Response indicates a Cloudflare/security block. ' : '') +
+        (hints[response.status] || 'Request failed.'), response.status === 429 ? 429 : 502);
+    }
+    let payload;
+    try { payload = JSON.parse(body); }
+    catch {
+      throw new ChallongeError('Challonge returned non-JSON content with HTTP ' + response.status +
+        ' (' + context + ').' + (challenge ? ' Response indicates a Cloudflare/security challenge.' : ''));
+    }
+    if (!payload || typeof payload !== 'object' || payload.errors || !Array.isArray(payload.data)) {
+      throw new ChallongeError('Unexpected Challonge collection format (' + context + ').');
+    }
     if (!payload.data.length) return rows;
     for (const row of payload.data) {
       const id = String(row?.id ?? '');
-      if (row?.type !== kind || !row.attributes || !/^\d+$/.test(id) || seen.has(id)) {
+      if (row?.type !== kind || (typeof row.attributes !== 'object' || !row.attributes || Array.isArray(row.attributes)) || !/^\d+$/.test(id) || seen.has(id)) {
         throw new ChallongeError('Invalid or repeated Challonge data. No partial list was loaded.');
       }
       seen.add(id); rows.push({ ...row, id });
@@ -145,6 +174,7 @@ export function openMatches(rows, participants) {
 async function liveData(request, path, env, fetcher, reply) {
   const key = (env.CHALLONGE_API_KEY || '').trim();
   if (!key) return reply(503, { error: 'Add the CHALLONGE_API_KEY secret to the Worker first.' });
+  if (/[^\x21-\x7e]/.test(key)) return reply(503, { error: 'The CHALLONGE_API_KEY secret contains spaces or invalid characters. Re-enter the plain key without quotes.' });
   const signal = AbortSignal.timeout(25000);
   try {
     const tournaments = await activeTournaments(key, fetcher, signal);
@@ -159,6 +189,6 @@ async function liveData(request, path, env, fetcher, reply) {
     return reply(200, { tournament, ...openMatches(rows, participants), fetchedAt: new Date().toISOString() });
   } catch (error) {
     return reply(error instanceof ChallongeError ? error.status : 502,
-      { error: error instanceof ChallongeError ? error.message : 'Could not read Challonge. Try refreshing again shortly.' });
+      { error: error instanceof ChallongeError ? error.message : 'Challonge data processing failed after the request. No match list was loaded.' });
   }
 }

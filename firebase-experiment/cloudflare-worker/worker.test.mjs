@@ -100,7 +100,7 @@ function upstream(matchRows, calls=[]) {
     calls.push({url,options});
     if(url.includes('identitytoolkit')) return Response.json({users:[{localId:'owner'}]});
     assert.equal(options.method,'GET');
-    assert.equal(options.redirect,'error');
+    assert.equal(options.redirect,'manual');
     assert.equal(options.headers.Authorization,'private-challonge-key');
     assert.equal(options.headers['Authorization-Type'],'v1');
     const u=new URL(url);
@@ -183,4 +183,32 @@ test('resource-level relationships and unknown opponents are handled',()=>{
   row.relationships=row.attributes.relationships;delete row.attributes.relationships;
   assert.equal(openMatches([row],people).matches.length,1);
   assert.equal(openMatches([match('2','open','11','99')],people).unresolved,1);
+});
+
+test('redirect is diagnosed and never followed',async()=>{
+ let calls=0;
+ await assert.rejects(()=>collection('tournaments','tournament','key',async(url,options)=>{
+   calls++; assert.equal(options.redirect,'manual');
+   return new Response(null,{status:302,headers:{Location:'https://other.example'}});
+ }),/HTTP 302 redirect/);
+ assert.equal(calls,1);
+});
+test('non-JSON security challenge is identified without returning body',async()=>{
+ await assert.rejects(()=>collection('tournaments','tournament','key',async()=>new Response('<html>Just a moment private-secret</html>')),
+ error=>error.message.includes('security challenge')&&!error.message.includes('private-secret'));
+});
+test('connection errors and timeouts produce distinct safe messages',async()=>{
+ for(const [name,pattern] of [['TypeError',/No HTTP response/],['TimeoutError',/timed out/]]){
+   await assert.rejects(()=>collection('tournaments','tournament','key',async()=>{
+     const e=new Error('private-secret');e.name=name;throw e;
+   }),e=>pattern.test(e.message)&&!e.message.includes('private-secret'));
+ }
+});
+test('null JSON response is classified as unexpected format',async()=>{
+ await assert.rejects(()=>collection('tournaments','tournament','key',async()=>Response.json(null)),/collection format/);
+});
+test('invalid key characters fail before contacting Challonge',async()=>{
+ const r=await handle(liveRequest('/tournaments'),{...liveEnv,CHALLONGE_API_KEY:'bad key'},google('owner'));
+ assert.equal(r.status,503);
+ assert((await r.json()).error.includes('invalid characters'));
 });
