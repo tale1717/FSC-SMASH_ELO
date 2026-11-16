@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Match flow demo · FSC Smash Elo</title><style>body{margin:0;background:#0a2017}a{color:#d4e9bd}.demo-back{display:block;max-width:1080px;margin:20px auto;padding:0 32px}</style></head><body><a class="demo-back" href="index.html">← Back to rankings</a><style>
-#fsc-stage{background:#0a2017;color:#edf4ed;font:15px/1.5 system-ui,sans-serif;padding:32px;border-radius:8px}#fsc-stage *{box-sizing:border-box}#fsc-stage [hidden]{display:none!important}#fsc-stage .inner{max-width:1080px;margin:auto}#fsc-stage .eyebrow{font-size:12px;letter-spacing:2px;color:#b5cbbb;padding-right:85px}#fsc-stage h1{font-size:32px;line-height:1.2;letter-spacing:-1px;margin:20px 0 10px}#fsc-stage h2{font-size:22px;margin:0 0 8px}#fsc-stage p{color:#b5cbbb;margin:6px 0}#fsc-stage .small{font-size:12px;color:#b5cbbb}#fsc-stage header{border-bottom:1px solid #2d5540;padding-bottom:22px}#fsc-stage .scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;margin:24px 0}#fsc-stage .scoreboard .right{text-align:right}#fsc-stage .score{font-size:28px;color:#d4e9bd;white-space:nowrap}#fsc-stage .scoreboard strong{display:block;font-size:18px}#fsc-stage button,#fsc-stage select,
+#fsc-stage{background:#0a2017;color:#edf4ed;font:15px/1.5 system-ui,sans-serif;padding:32px;border-radius:8px}#fsc-stage *{box-sizing:border-box}#fsc-stage [hidden]{display:none!important}#fsc-stage .inner{max-width:1080px;margin:auto}#fsc-stage .eyebrow{font-size:12px;letter-spacing:2px;color:#b5cbbb;padding-right:85px}#fsc-stage h1{font-size:32px;line-height:1.2;letter-spacing:-1px;margin:20px 0 10px}#fsc-stage h2{font-size:22px;margin:0 0 8px}#fsc-stage p{color:#b5cbbb;margin:6px 0}#fsc-stage .small{font-size:12px;color:#b5cbbb}#fsc-stage header{border-bottom:1px solid #2d5540;padding-bottom:22px}#fsc-stage .scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;margin:24px 0}#fsc-stage .scoreboard .right{text-align:right}#fsc-stage .score{font-size:28px;color:#d4e9bd;white-space:nowrap}#fsc-stage .scoreboard strong{display:block;font-size:18px}#fsc-stage button,#fsc-stage select,#fsc-stage input{font:inherit;border:1px solid #52735f;background:#123526;color:#edf4ed;border-radius:7px;padding:11px 15px;min-height:44px}
 #fsc-stage .tile{position:relative;border:2px solid #52735f;transition:border-color .15s}
 #fsc-stage .tile:disabled{opacity:1;cursor:not-allowed}
 #fsc-stage .tile:focus-visible{outline:3px solid #fff;outline-offset:3px}
@@ -30,6 +30,29 @@
 
 #fsc-stage input{font:inherit;border:1px solid #52735f;background:#123526;color:#edf4ed;border-radius:7px;padding:11px 15px;min-height:44px}#fsc-stage button:hover:enabled{border-color:#d4e9bd;background:#214d36}#fsc-stage button:disabled{opacity:.55}#fsc-stage button.primary{background:#d4e9bd;color:#173322}#fsc-stage .panel{background:#103022;border:1px solid #2d5540;border-radius:10px;padding:22px;margin:20px 0}#fsc-stage .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0}#fsc-stage label{display:block;color:#b5cbbb;font-size:13px}#fsc-stage select{display:block;width:100%;margin-top:7px;font-size:16px}#fsc-stage .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}#fsc-stage .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}#fsc-stage .tile{padding:0;text-align:left;overflow:hidden;min-width:0}#fsc-stage .tile .space{height:auto;aspect-ratio:16/9;background:#1c3d2d;display:flex;align-items:center;justify-content:center;color:#b2c7b6;font-size:12px;letter-spacing:1px}#fsc-stage .tile strong{display:block;padding:12px 12px 3px;font-size:14px;overflow-wrap:anywhere}#fsc-stage .tile small{display:block;padding:0 12px 12px;color:#b5cbbb;font-size:12px}#fsc-stage .tile[aria-pressed=true]{border:2px solid #d4e9bd;background:#294b34}#fsc-stage .tile.banned .space{background:#322e26;color:#dfc6ac}#fsc-stage .tile.banned strong{text-decoration:line-through}#fsc-stage .turn{border-left:3px solid #d4e9bd;padding-left:16px;margin-top:22px}#fsc-stage .ready-stage{font-size:30px;color:#d4e9bd;margin:18px 0;overflow-wrap:anywhere}#fsc-stage ol{color:#b5cbbb;padding-left:24px;font-size:13px}#fsc-stage footer{border-top:1px solid #2d5540;margin-top:28px;padding-top:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}#fsc-stage .restart{font-size:12px;background:transparent}#fsc-stage .winner-buttons{display:flex;gap:12px;flex-wrap:wrap}#fsc-stage .history-item{padding:12px 0;border-bottom:1px solid #2d5540}#fsc-stage .status{min-height:24px}@media(max-width:650px){#fsc-stage{padding:24px 16px}#fsc-stage .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#fsc-stage .pair{grid-template-columns:1fr}#fsc-stage .scoreboard{gap:10px}#fsc-stage .scoreboard strong{font-size:15px}#fsc-stage h1{font-size:26px}#fsc-stage .panel{padding:16px}}
 #fsc-stage input{display:block;width:100%;margin:8px 0;font-size:16px}#fsc-stage #st-joined-a,#fsc-stage #st-joined-b{display:block;margin-top:8px}#fsc-stage .panel h3{margin-top:0}
+
+#fsc-stage #st-grid{display:block}
+#fsc-stage .stage-group{margin:24px 0}
+#fsc-stage .stage-group h3{text-align:center;color:#d4e9bd;font-size:16px;margin:0 0 12px}
+#fsc-stage .stage-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+#fsc-stage .stage-row .tile{flex:0 0 calc((100% - 48px)/5);display:flex;flex-direction:column;text-align:center;background:#123526;border:2px solid #52735f;cursor:pointer}
+#fsc-stage .tile .space{width:100%;flex-shrink:0}
+#fsc-stage .stage-caption{display:flex;flex:1;flex-direction:column;width:100%;background:#d4e9bd;color:#173322;text-align:center}
+#fsc-stage .tile strong{padding:10px 8px 4px;min-height:56px}
+#fsc-stage .tile small{color:#173322;padding:0 8px 8px}
+#fsc-stage .tile .stage-state{color:#173322;padding:4px 8px 10px;margin-top:auto}
+#fsc-stage .tile.banned strong{text-decoration:none}
+#fsc-stage .tile.banned .stage-state{color:#7d2020}
+#fsc-stage .tile.pending-ban .stage-state{color:#713610}
+#fsc-stage .tile.pending-ban{border-color:#ffbd83}
+#fsc-stage .tile.banned{border-color:#a95454;opacity:1}
+#fsc-stage .tile.picked{border-color:#d4e9bd}
+#fsc-stage #st-ready{text-align:center}
+#fsc-stage .ready-art{width:100%;margin:20px auto 0}
+#fsc-stage #st-ready .actions{justify-content:center}
+#fsc-stage button:focus-visible,#fsc-stage select:focus-visible{outline:3px solid #d4e9bd;outline-offset:3px}
+@media(max-width:850px){#fsc-stage .stage-row .tile{flex-basis:calc((100% - 24px)/3)}}
+@media(max-width:550px){#fsc-stage .stage-row .tile{flex-basis:calc((100% - 12px)/2)}}
 </style>
 <div id="fsc-stage"><div class="inner"><header><div class="eyebrow">FSC SMASH ELO · MATCH ROOM</div><h1>Play / Report Match</h1><p class="small">DEMO ONLY · Both players and TO simulated on this device · Refresh resets progress</p></header>
 <div class="scoreboard"><div><strong>Ethanmagoo</strong><span class="small">Player 1</span></div><div class="score" id="st-score">0 – 0</div><div class="right"><strong>Louie</strong><span class="small">Player 2</span></div></div>
@@ -38,7 +61,7 @@
 <section id="st-characters" class="panel" hidden><h2>Choose characters</h2><p id="st-character-game"></p><div class="pair"><label>Ethanmagoo<select id="st-char-a"><option>Kazuya</option><option>Mario</option><option>Cloud</option><option>Palutena</option></select></label><label>Louie<select id="st-char-b"><option>Mii Brawler</option><option>Mario</option><option>Cloud</option><option>Palutena</option></select></label></div><p class="small">Sample character menu · Choose again for each game</p><button id="st-characters-next" type="button" class="primary">Continue to stages</button></section>
 <section id="st-agree" class="panel"><h2>Agree on a stage?</h2><p>Choose the same stage to skip striking. Either player can opt for the standard process.</p><div class="pair"><label>Ethanmagoo’s choice<select id="st-choice-a"></select></label><label>Louie’s choice<select id="st-choice-b"></select></label></div><p id="st-agree-status" class="status" role="status"></p><div class="actions"><button id="st-agree-confirm" class="primary" type="button" disabled>Confirm agreed stage</button><button id="st-standard" type="button">Use stage striking</button></div></section>
 <section id="st-selection" hidden><div class="turn"><h2 id="st-turn"></h2><p id="st-instruction"></p></div><p class="small">Tap stage cards to select strikes. Tap again to undo before confirming.</p><div id="st-grid" class="grid"></div><div class="actions"><button id="st-confirm" class="primary" type="button" disabled>Confirm</button></div><p id="st-progress" class="small" role="status"></p><ol id="st-log"></ol></section>
-<section id="st-ready" class="panel" hidden><p class="small">STAGE LOCKED</p><h2 id="st-ready-title">Ready for game 1</h2><div id="st-stage-name" class="ready-stage"></div><div id="st-stage-art" class="ready-art"></div><p id="st-method"></p><p class="small">Record this game’s winner. Both players review the complete record before TO approval.</p><div class="actions winner-buttons"><button type="button" id="st-win-a">Ethanmagoo wins</button><button type="button" id="st-win-b">Louie wins</button></div></section>
+<section id="st-ready" class="panel" hidden><p class="small">STAGE LOCKED</p><h2 id="st-ready-title">Ready for game 1</h2><div id="st-stage-art" class="ready-art"></div><div id="st-stage-name" class="ready-stage"></div><p id="st-method"></p><p class="small">Record this game’s winner. Both players review the complete record before TO approval.</p><div class="actions winner-buttons"><button type="button" id="st-win-a">Ethanmagoo wins</button><button type="button" id="st-win-b">Louie wins</button></div></section>
 <section id="st-complete" class="panel" hidden><h2 id="st-result"></h2><p id="st-review-status" role="status">Both players must confirm the game record below.</p><div class="actions" id="st-confirmations"><button id="st-confirm-a" type="button">Ethanmagoo confirms</button><button id="st-confirm-b" type="button">Louie confirms</button><button id="st-correct" type="button">Correct last game</button></div><div id="st-report-message" class="turn" hidden><h3>Awaiting TO approval</h3><p id="st-to-message"></p><p class="small">Results remain pending. No official statistics or Elo changes yet.</p></div><section id="st-admin" class="panel" hidden><h3>TO review · Demo controls</h3><p>Review both player confirmations and the recorded games.</p><div class="actions"><button type="button" class="primary" id="st-approve">Approve final result</button><button type="button" id="st-request-correction">Request correction</button></div></section></section>
 <section id="st-history" hidden><h2>Games played</h2><div id="st-games"></div></section>
 <footer><span class="small">1–2–1 opening strikes · 3 counterpick bans · Stage repeats allowed</span><button type="button" class="restart" id="st-restart">Restart demo</button></footer></div></div>
@@ -58,7 +81,15 @@ const who=names[actor()],need=quota(),pick=picking();
 q('turn').textContent=`${who}: ${pick?'choose a stage':`ban ${need} stage${need>1?'s':''}`}`;
 q('instruction').textContent=game===1?`${names[first]} was randomly selected to strike first · Step ${step+1} of 3`:pick?'Choose from the five remaining stages. Previously won stages are allowed.':`${who} won the previous game. Ban 3 of the 8 stages.`;
 q('grid').replaceChildren();
-for(const s of stages){
+const rows={};
+for(const [key,label] of [['starters','Starter stages'],['counterpicks','Counterpick stages']]){
+if(key==='counterpicks'&&game===1)continue;
+const group=document.createElement('section');group.className='stage-group';
+const heading=document.createElement('h3');heading.id='st-'+key+'-heading';heading.textContent=label;
+const row=document.createElement('div');row.className='stage-row';row.id='st-'+key;row.setAttribute('role','group');row.setAttribute('aria-labelledby',heading.id);
+group.append(heading,row);q('grid').append(group);rows[key]=row;
+}
+for(const s of available()){
 const isBanned=banned.has(s.name),unavailable=game===1&&s.counter,chosen=selected.has(s.name);
 const button=document.createElement('button');button.type='button';
 button.className='tile'+(isBanned?' banned':'')+(unavailable?' unavailable':'')+(chosen?(pick?' picked':' pending-ban'):'');
@@ -69,9 +100,9 @@ const space=artwork(s),cross=document.createElement('span');cross.className='str
 const title=document.createElement('strong');title.textContent=s.name;
 const sub=document.createElement('small');sub.textContent=s.counter?'Counterpick':'Starter';
 const badge=document.createElement('span');badge.className='stage-state';badge.textContent=state;
-button.append(space,title,sub,badge);
+const caption=document.createElement('span');caption.className='stage-caption';caption.append(title,sub,badge);button.append(space,caption);
 button.addEventListener('click',()=>{if(selected.has(s.name))selected.delete(s.name);else if(selected.size<need)selected.add(s.name);render(s.name)});
-q('grid').append(button);if(focusStage===s.name)button.focus({preventScroll:true});
+rows[s.counter?'counterpicks':'starters'].append(button);if(focusStage===s.name)button.focus({preventScroll:true});
 }
 q('confirm').disabled=selected.size!==need;q('confirm').textContent=pick?'Confirm stage':`Confirm ${need} ban${need>1?'s':''}`;
 q('progress').textContent=`${selected.size} of ${need} selected`;
