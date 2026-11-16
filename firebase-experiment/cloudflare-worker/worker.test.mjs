@@ -6,7 +6,7 @@ const env = { FIREBASE_WEB_API_KEY: 'test-key', OWNER_UID: 'owner', ORGANIZER_UI
 function token(uid = 'owner', changes = {}) {
   const data = { aud: 'fsc-smash-elo', iss: 'https://securetoken.google.com/fsc-smash-elo',
     sub: uid, exp: now + 3600, iat: now - 10, auth_time: now - 10,
-    firebase: { sign_in_provider: 'password' }, ...changes };
+    firebase: { sign_in_provider: uid === 'owner' ? 'google.com' : 'password' }, ...changes };
   return 'header.' + Buffer.from(JSON.stringify(data)).toString('base64url') + '.signature';
 }
 function request(value, origin = 'https://fsc-smash-elo.web.app') {
@@ -61,4 +61,26 @@ test('CORS preflight and unknown mutation routes', async () => {
   assert.equal(r.status,204);
   assert.equal((await handle(new Request('https://api.example/me',{method:'POST'}),env)).status,405);
   assert.equal((await handle(new Request('https://api.example/refresh'),env)).status,404);
+});
+
+test('roles require their designated session provider even with linked accounts', async () => {
+  for (const [uid, provider, expected] of [
+    ['owner', 'google.com', 200],
+    ['owner', 'password', 403],
+    ['invited', 'password', 200],
+    ['invited', 'google.com', 403],
+    ['stranger', 'google.com', 403],
+    ['stranger', 'password', 403]
+  ]) {
+    const value = token(uid, { firebase: { sign_in_provider: provider } });
+    const result = await handle(request(value), env, google(uid, {
+      providerUserInfo: [{ providerId: 'google.com' }, { providerId: 'password' }]
+    }));
+    assert.equal(result.status, expected, uid + ' via ' + provider);
+  }
+});
+test('owner cannot bypass Google requirement by also appearing in organizer allowlist', async () => {
+  const result = await handle(request(token('owner', { firebase: { sign_in_provider: 'password' } })),
+    { ...env, ORGANIZER_UIDS: 'owner,invited' }, google('owner'));
+  assert.equal(result.status, 403);
 });

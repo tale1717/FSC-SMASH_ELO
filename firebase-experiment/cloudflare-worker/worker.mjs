@@ -60,6 +60,11 @@ export async function handle(request, env, fetcher = fetch) {
   const approved = new Set((env.ORGANIZER_UIDS || '').split(',').map(value => value.trim()).filter(Boolean));
   const role = account.localId === env.OWNER_UID ? 'owner' : approved.has(account.localId) ? 'organizer' : null;
   if (!role) return reply(403, { error: 'Organizer access not approved' });
+  // Require the provider used for this session, not merely a linked provider.
+  const requiredProvider = role === 'owner' ? 'google.com' : 'password';
+  if (payload.firebase.sign_in_provider !== requiredProvider) {
+    return reply(403, { error: 'Sign-in method not permitted for this role' });
+  }
   return reply(200, { uid: account.localId, role });
 }
 export default { fetch(request, env) { return handle(request, env); } };

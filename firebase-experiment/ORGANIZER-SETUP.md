@@ -2,6 +2,8 @@
 
 No sign-up or access-request UI exists. Email/password accounts are created manually by the owner in Firebase Authentication → Users → Add user. Enable Email/Password under Sign-in method first. Google remains enabled for the owner's existing account.
 
+The Worker enforces Google sign-in for OWNER_UID and email/password sign-in for every approved organizer. It checks the verified token's current sign_in_provider; linking Google to an organizer account does not permit organizer access through Google. Other people can still complete Google's authentication screen and may create a Firebase user, but cannot obtain organizer access through Google.
+
 A Firebase account is not an organizer permission. Hidden signup buttons do not disable Firebase's public signup API. The Worker checks an owner-managed UID allowlist, so any account created outside this process has no organizer access.
 
 ## Deploy the API
