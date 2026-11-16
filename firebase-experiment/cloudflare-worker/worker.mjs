@@ -16,7 +16,7 @@ export async function handle(request, env, fetcher = fetch) {
   if (origin && !ORIGINS.has(origin)) return reply(403, { error: 'Origin not allowed' });
   const path = new URL(request.url).pathname;
   if (request.method === 'OPTIONS') {
-    if (path !== '/me') return reply(404, { error: 'Not found' });
+    if (!['/me', '/tournaments', '/matches'].includes(path)) return reply(404, { error: 'Not found' });
     return new Response(null, { status: 204, headers: {
       ...headers, 'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization', 'Access-Control-Max-Age': '600'
@@ -24,7 +24,7 @@ export async function handle(request, env, fetcher = fetch) {
   }
   if (request.method !== 'GET') return reply(405, { error: 'Method not allowed' });
   if (path === '/') return reply(200, { service: 'FSC Smash Elo organizer API', status: 'ready' });
-  if (path !== '/me') return reply(404, { error: 'Not found' });
+  if (!['/me', '/tournaments', '/matches'].includes(path)) return reply(404, { error: 'Not found' });
   if (!env.FIREBASE_WEB_API_KEY || !env.OWNER_UID) return reply(503, { error: 'API configuration required' });
   const bearer = request.headers.get('Authorization') || '';
   if (!/^Bearer \S+$/.test(bearer) || bearer.length > 16000) return reply(401, { error: 'Sign-in required' });
@@ -65,6 +65,100 @@ export async function handle(request, env, fetcher = fetch) {
   if (payload.firebase.sign_in_provider !== requiredProvider) {
     return reply(403, { error: 'Sign-in method not permitted for this role' });
   }
+  if (path !== '/me') return liveData(request, path, env, fetcher, reply);
   return reply(200, { uid: account.localId, role });
 }
 export default { fetch(request, env) { return handle(request, env); } };
+
+class ChallongeError extends Error {
+  constructor(message, status = 502) { super(message); this.status = status; }
+}
+export async function collection(path, kind, key, fetcher, signal, filters = {}) {
+  if (!/^tournaments(?:\/\d+\/(?:participants|matches))?$/.test(path)) throw new ChallongeError('Invalid endpoint', 400);
+  const rows = [], seen = new Set();
+  for (let page = 1; page <= 12; page++) {
+    const query = new URLSearchParams({ ...filters, page: String(page), per_page: '25' });
+    const response = await fetcher('https://api.challonge.com/v2.1/' + path + '.json?' + query, {
+      method: 'GET', redirect: 'error', signal,
+      headers: { Authorization: key, 'Authorization-Type': 'v1', Accept: 'application/json',
+        'Content-Type': 'application/vnd.api+json',
+        'User-Agent': 'FSC-Smash-Elo/1.0 (+https://github.com/tale1717/FSC-SMASH_ELO)' }
+    });
+    if (!response.ok) {
+      const hints = { 401: 'Challonge rejected the API key.', 403: 'Challonge denied this request; account permissions or a security block may be involved.',
+        429: 'Challonge request limit reached. Wait before refreshing.' };
+      throw new ChallongeError(hints[response.status] || 'Challonge request failed.', response.status === 429 ? 429 : 502);
+    }
+    const payload = await response.json();
+    if (payload.errors || !Array.isArray(payload.data)) throw new ChallongeError('Unexpected Challonge response.');
+    if (!payload.data.length) return rows;
+    for (const row of payload.data) {
+      const id = String(row?.id ?? '');
+      if (row?.type !== kind || !row.attributes || !/^\d+$/.test(id) || seen.has(id)) {
+        throw new ChallongeError('Invalid or repeated Challonge data. No partial list was loaded.');
+      }
+      seen.add(id); rows.push({ ...row, id });
+    }
+  }
+  throw new ChallongeError('Challonge pagination limit reached. No partial list was loaded.');
+}
+async function activeTournaments(key, fetcher, signal) {
+  const rows = await collection('tournaments', 'tournament', key, fetcher, signal, { state: 'underway' });
+  return rows.filter(({ attributes: a }) =>
+    typeof a.name === 'string' && a.name.startsWith('FSC Fall Bracket') &&
+    a.game_name === 'Super Smash Bros. Ultimate' && !a.teams && !a.group_stage_enabled &&
+    (!a.state || a.state === 'underway')
+  ).map(({ id, attributes: a }) => ({
+    id, name: a.name, url: bracketUrl(a.url),
+    startsAt: a.started_at || a.timestamps?.started_at || a.starts_at || null
+  })).sort((a, b) => String(b.startsAt || '').localeCompare(String(a.startsAt || '')) || b.id.localeCompare(a.id));
+}
+function bracketUrl(slug) {
+  if (typeof slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(slug)) return null;
+  return 'https://challonge.com/' + slug;
+}
+export function openMatches(rows, participants) {
+  const names = new Map(participants.map(p => [p.id, p.attributes.name]));
+  const matches = [];
+  let unresolved = 0;
+  for (const row of rows) {
+    const a = row.attributes;
+    if (!['open', 'underway'].includes(a.state) || a.winner_id != null) continue;
+    const relationships = a.relationships || row.relationships || {};
+    const ids = ['player1', 'player2'].map(slot => {
+      const id = relationships[slot]?.data?.id;
+      return id == null ? null : String(id);
+    });
+    // Do not guess bracket slots from participant order or score arrays.
+    if (ids.some(id => !id || !names.has(id)) || ids[0] === ids[1]) { unresolved++; continue; }
+    matches.push({
+      id: row.id, identifier: String(a.identifier || row.id),
+      round: Number.isInteger(a.round) ? a.round : null,
+      order: Number.isFinite(a.suggested_play_order) ? a.suggested_play_order : null,
+      state: a.state === 'underway' || a.underway_at || a.timestamps?.underway_at ? 'underway' : 'open',
+      players: ids.map(id => ({ id, name: String(names.get(id) || 'Unnamed participant') }))
+    });
+  }
+  matches.sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.id.localeCompare(b.id, undefined, { numeric:true }));
+  return { matches, unresolved };
+}
+async function liveData(request, path, env, fetcher, reply) {
+  const key = (env.CHALLONGE_API_KEY || '').trim();
+  if (!key) return reply(503, { error: 'Add the CHALLONGE_API_KEY secret to the Worker first.' });
+  const signal = AbortSignal.timeout(25000);
+  try {
+    const tournaments = await activeTournaments(key, fetcher, signal);
+    if (path === '/tournaments') return reply(200, { tournaments, fetchedAt: new Date().toISOString() });
+    const id = new URL(request.url).searchParams.get('tournament');
+    if (!id || !/^\d+$/.test(id)) return reply(400, { error: 'Select a tournament from the list.' });
+    const tournament = tournaments.find(t => t.id === id);
+    if (!tournament) return reply(409, { error: 'This tournament is no longer in the active FSC Fall list. Reload tournaments.' });
+    // Fetch participants before matches so the match snapshot is the most recent.
+    const participants = await collection('tournaments/' + id + '/participants', 'participant', key, fetcher, signal);
+    const rows = await collection('tournaments/' + id + '/matches', 'match', key, fetcher, signal);
+    return reply(200, { tournament, ...openMatches(rows, participants), fetchedAt: new Date().toISOString() });
+  } catch (error) {
+    return reply(error instanceof ChallongeError ? error.status : 502,
+      { error: error instanceof ChallongeError ? error.message : 'Could not read Challonge. Try refreshing again shortly.' });
+  }
+}

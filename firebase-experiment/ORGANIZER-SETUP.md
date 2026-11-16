@@ -31,6 +31,23 @@ To revoke access, remove the UID from ORGANIZER_UIDS immediately and disable the
 
 Deploy Hosting after pulling test-firebase. Sign in with Owner Google sign-in and verify "Owner access confirmed." New organizer accounts use email/password. An unapproved account must see access denied.
 
-This step implements identity and approval checks only. Active-match refresh, GitHub dispatch, and final result approval endpoints are not implemented. Existing Firestore rules and Elo remain unchanged. Future privileged endpoints must reuse this server-side authorization on every request.
+Active-match reads now use the Worker directly, without GitHub dispatch latency. Final result approval and player rooms are not implemented. Existing Firestore rules and Elo remain unchanged. Future privileged endpoints must reuse this server-side authorization on every request.
 
 Tests: node --test cloudflare-worker/worker.test.mjs
+
+
+## Active matches
+
+Add CHALLONGE_API_KEY as a Cloudflare secret using the existing Challonge account API key. The Worker uses v2.1 endpoints with Authorization-Type: v1, exactly like the existing Python importer. Never put this key in public files.
+
+Redeploy the full worker.mjs in Cloudflare and deploy Firebase Hosting after pulling this branch. No bindings, GitHub token, or Firestore rule changes are required.
+
+Sign in, click Load / reload tournaments, select the active bracket, then Refresh matches from Challonge. The list is restricted to in-progress tournaments named with the FSC Fall Bracket prefix, game Super Smash Bros. Ultimate, no teams or group stages. No tournament currently running means an empty list, not a login failure. Start a bracket on Challonge first; don't start a real bracket merely to test this page.
+
+GET /tournaments and GET /matches?tournament=NUMERIC_ID both enforce organizer identity and provider checks. Each refresh verifies the tournament is still in the account's active filtered list. Match and participant requests use its numeric ID. Open/underway sets with resolved opponents and no winner are shown; completed, pending, and unresolved sets are excluded. Unresolved counts are disclosed.
+
+After manually entering a score on Challonge, click Refresh matches from Challonge again. This reads current data without writing scores, calculating Elo, or publishing game reports. There is no automatic polling. The UI clears old matches on a refresh failure instead of presenting them as current.
+
+Pagination continues to an empty page, with duplicate checks and a 12-page cap per collection (maximum 36 Challonge requests per match refresh). It fails explicitly rather than serving a partial list. Responses are not cached. A 25-second deadline bounds Challonge reads.
+
+Tests use mocked Google and Challonge responses; live access from Cloudflare must still be checked after deployment. A 403 from Challonge may reflect account permissions or a security block; never bypass it.

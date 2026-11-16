@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Organizer setup — FSC Smash Elo</title>
+<title>Organizer dashboard — FSC Smash Elo</title>
 <link rel="stylesheet" href="style.css">
 <style>
 .organizer-card{max-width:640px;padding:24px;background:#123526;border:1px solid #2d5540;border-radius:12px}
@@ -11,13 +11,16 @@
 .organizer-actions button:disabled{opacity:.6;cursor:default}
 #organizer-uid{width:100%;font-family:monospace}
 #organizer-account{overflow-wrap:anywhere}
+.match-card{padding:18px;background:#123526;border:1px solid #2d5540;border-radius:10px;margin:12px 0}
+.match-card h3{margin:0 0 10px;overflow-wrap:anywhere}.match-card p{margin:6px 0;color:#b5cbbb}
+#live-status{line-height:1.6}#tournament-select{width:100%;max-width:640px}
 </style>
 </head>
 <body>
 <header class="profile-header"><p class="brand-title"><a href="index.html">FSC Smash Elo</a></p></header>
 <main>
 <nav><a href="index.html">Back to rankings</a></nav>
-<h1 id="set-title">Organizer setup</h1>
+<h1 id="set-title">Organizer dashboard</h1>
 <p>Organizer access is invite-only. Use the account supplied by the tournament owner.</p>
 <section class="organizer-card" aria-label="Organizer sign-in">
 <p id="organizer-status" role="status" aria-live="polite">Loading sign-in…</p>
@@ -36,7 +39,19 @@
 <p class="section-note">Access is checked against the approved organizer list. Contact the owner if you cannot access organizer tools.</p>
 </div>
 </section>
-<p class="section-note">Match refresh and result approval are not connected yet. Players will use match codes separately.</p>
+<section id="live-panel" hidden aria-labelledby="live-heading">
+<h2 id="live-heading">Active Challonge matches</h2>
+<p class="section-note">Enter the score on Challonge first, then refresh here to see the next available matches.</p>
+<div class="organizer-actions"><button id="load-tournaments" type="button">Load / reload tournaments</button></div>
+<label for="tournament-select">In-progress FSC Fall bracket</label>
+<select id="tournament-select" disabled><option value="">Load tournaments to begin</option></select>
+<div class="organizer-actions"><button id="refresh-matches" type="button" disabled>Refresh matches from Challonge</button></div>
+<p id="live-status" role="status" aria-live="polite">Load tournaments to begin.</p>
+<p id="live-updated" class="section-note"></p>
+<p><a id="live-bracket" target="_blank" rel="noopener noreferrer" hidden>Open bracket on Challonge</a></p>
+<div id="live-matches"></div>
+</section>
+<p class="section-note">This dashboard reads Challonge only. Player rooms and final result approval are not connected yet.</p>
 </main>
 <script type="module" src="organizer.js"></script>
 </body>

@@ -1,3 +1,4 @@
+import { createLiveDashboard } from './organizer-matches.js';
 const $ = id => document.getElementById(id);
 const status = $('organizer-status');
 const login = $('organizer-login');
@@ -29,6 +30,7 @@ async function start() {
       import('./firebase-config.js')
     ]);
     const auth = sdk.getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
+    const live = createLiveDashboard(auth, api);
     await sdk.setPersistence(auth, sdk.browserSessionPersistence);
     const provider = new sdk.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -53,6 +55,7 @@ async function start() {
     });
     sdk.onAuthStateChanged(auth, async user => {
       const current = ++revision;
+      live.reset();
       identity.hidden = true;
       uid.value = '';
       copyStatus.textContent = '';
@@ -82,6 +85,7 @@ async function start() {
         if (current !== revision) return;
         if (data.uid !== user.uid || !['owner', 'organizer'].includes(data.role)) throw new Error('Invalid access response');
         identity.hidden = false;
+        live.enable();
         uid.value = user.uid;
         $('organizer-account').textContent = user.email || 'Organizer account';
         status.textContent = data.role === 'owner' ? 'Owner access confirmed.' : 'Organizer access confirmed.';
