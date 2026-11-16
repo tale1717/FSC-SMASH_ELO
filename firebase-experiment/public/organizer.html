@@ -18,17 +18,22 @@
 <main>
 <nav><a href="index.html">Back to rankings</a></nav>
 <h1 id="set-title">Organizer setup</h1>
-<p>Sign in with your organizer Google account to set up TO access.</p>
+<p>Organizer access is invite-only. Use the account supplied by the tournament owner.</p>
 <section class="organizer-card" aria-label="Organizer sign-in">
 <p id="organizer-status" role="status" aria-live="polite">Loading sign-in…</p>
-<div class="organizer-actions"><button id="organizer-sign-in" type="button" disabled>Sign in with Google</button><button id="organizer-sign-out" type="button" hidden>Sign out</button></div>
+<form id="organizer-login">
+<label for="organizer-email">Email</label><input id="organizer-email" type="email" autocomplete="username" required>
+<label for="organizer-password">Password</label><input id="organizer-password" type="password" autocomplete="current-password" required>
+<div class="organizer-actions"><button id="organizer-password-login" type="submit" disabled>Sign in</button></div>
+</form>
+<div class="organizer-actions"><button id="organizer-sign-in" type="button" disabled>Owner Google sign-in</button><button id="organizer-sign-out" type="button" hidden>Sign out</button></div>
 <div id="organizer-identity" hidden>
 <p id="organizer-account"></p>
 <label for="organizer-uid">Your Firebase user ID (UID)</label>
 <input id="organizer-uid" readonly autocomplete="off" spellcheck="false">
 <div class="organizer-actions"><button id="organizer-copy" type="button">Copy user ID</button></div>
 <p id="organizer-copy-status" role="status"></p>
-<p class="section-note">This ID identifies your account; it is not a password or access token. Signing in does not grant organizer permissions. TO access must be approved separately.</p>
+<p class="section-note">Access is checked against the approved organizer list. Contact the owner if you cannot access organizer tools.</p>
 </div>
 </section>
 <p class="section-note">Match refresh and result approval are not connected yet. Players will use match codes separately.</p>

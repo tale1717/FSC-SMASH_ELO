@@ -1,17 +1,34 @@
-# Organizer sign-in setup
+# Invite-only organizer access
 
-This page establishes the organizer's Firebase identity only. It does not grant TO permissions, read private data, dispatch workflows, or write match results.
+No sign-up or access-request UI exists. Email/password accounts are created manually by the owner in Firebase Authentication → Users → Add user. Enable Email/Password under Sign-in method first. Google remains enabled for the owner's existing account.
 
-1. Enable Google under Firebase Authentication → Sign-in method.
-2. Pull test-firebase and deploy Hosting from firebase-experiment.
-3. Open /organizer.html on the hosted site, sign in, and copy the Firebase UID.
-4. Configure the future Worker to verify Firebase ID tokens for project fsc-smash-elo and authorize that exact UID on every privileged request. Never use a client-side role check as authorization.
+A Firebase account is not an organizer permission. Hidden signup buttons do not disable Firebase's public signup API. The Worker checks an owner-managed UID allowlist, so any account created outside this process has no organizer access.
 
-The UID may be shared for setup. Do not share ID tokens, passwords, client secrets, or GitHub tokens.
-Sign-in uses session persistence and provides a sign-out button for shared TO computers.
+## Deploy the API
 
-The existing Firestore rules are unchanged. Google sign-in alone does not enable writes or organizer privileges. The Cloudflare Worker is still a separately deployed service; Hosting deployment does not deploy it.
+In Cloudflare, open fsc-smash-elo-api → Edit code. Replace Hello World with cloudflare-worker/worker.mjs and deploy.
 
-If sign-in reports an unauthorized domain, add the hosting hostname under Authentication → Settings → Authorized domains. Test on the hosted URL first.
+Under Settings → Variables and Secrets configure:
+- OWNER_UID: 76XXWSwa4FgMRHAp01Aa13qrfLn1
+- FIREBASE_WEB_API_KEY: the current apiKey from the Firebase web app configuration in project fsc-smash-elo. Do not use an old deleted app configuration or a service-account private key.
+- ORGANIZER_UIDS: comma-separated UIDs of approved accounts; omit until adding other organizers.
 
-Manual check: sign in, confirm the displayed UID matches Authentication → Users in the Firebase console, copy it, then sign out and confirm the identity disappears.
+If the web API key has browser referrer restrictions, use a separate project API key limited to the Identity Toolkit API for server requests instead of weakening the browser key. Do not paste API keys or tokens into chat.
+
+The Worker forwards the Firebase ID token to Google's accounts:lookup endpoint to verify it and check the account, then checks project claims, disabled/revoked state and the approved UID list. Never authorize from a UID supplied by the browser. No GitHub token is required at this stage.
+
+## Add an organizer
+
+1. Approve the person first.
+2. Create their email/password account in Firebase Authentication.
+3. Copy its UID from the Firebase console and add it to ORGANIZER_UIDS in Cloudflare.
+4. Provide their credentials privately. Use Firebase's password reset flow to let them choose their own password.
+5. They sign in at /organizer.html. There is no public request or registration flow.
+
+To revoke access, remove the UID from ORGANIZER_UIDS immediately and disable the account in Firebase. Keep the existing owner account; do not delete/recreate it, as that changes its UID.
+
+Deploy Hosting after pulling test-firebase. Sign in with Owner Google sign-in and verify "Owner access confirmed." New organizer accounts use email/password. An unapproved account must see access denied.
+
+This step implements identity and approval checks only. Active-match refresh, GitHub dispatch, and final result approval endpoints are not implemented. Existing Firestore rules and Elo remain unchanged. Future privileged endpoints must reuse this server-side authorization on every request.
+
+Tests: node --test cloudflare-worker/worker.test.mjs

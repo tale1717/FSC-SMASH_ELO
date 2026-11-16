@@ -1,91 +1,101 @@
 const $ = id => document.getElementById(id);
 const status = $('organizer-status');
-const signIn = $('organizer-sign-in');
-const signOutButton = $('organizer-sign-out');
+const login = $('organizer-login');
+const googleButton = $('organizer-sign-in');
+const passwordButton = $('organizer-password-login');
+const logout = $('organizer-sign-out');
 const identity = $('organizer-identity');
 const uid = $('organizer-uid');
 const copyStatus = $('organizer-copy-status');
+const api = 'https://fsc-smash-elo-api.dstalero71.workers.dev';
+let revision = 0;
 
-function authMessage(error) {
+function message(error) {
   const messages = {
-    'auth/popup-blocked': 'Allow popups for this site, then select Sign in with Google again.',
-    'auth/popup-closed-by-user': 'Sign-in was canceled. Select Sign in with Google to try again.',
-    'auth/cancelled-popup-request': 'Another sign-in attempt is already open.',
-    'auth/unauthorized-domain': 'This domain is not authorized. Open Firebase Authentication → Settings → Authorized domains and add this site’s hostname.',
-    'auth/operation-not-allowed': 'Enable Google in Firebase Authentication → Sign-in method, then try again.',
-    'auth/network-request-failed': 'Sign-in could not connect. Check your connection and try again.',
-    'auth/account-exists-with-different-credential': 'This email already uses another sign-in method. Use that method before linking Google.'
+    'auth/popup-blocked': 'Allow popups for this site and try again.',
+    'auth/popup-closed-by-user': 'Sign-in was canceled.',
+    'auth/unauthorized-domain': 'This hostname must be added to Firebase Authentication authorized domains.',
+    'auth/operation-not-allowed': 'This sign-in method is not enabled. Contact the owner.',
+    'auth/network-request-failed': 'Check your connection and try again.',
+    'auth/too-many-requests': 'Too many attempts. Please wait before trying again.'
   };
-  return messages[error?.code] || 'Sign-in is unavailable. Check the Firebase web configuration and Authentication settings, then reload.';
+  return messages[error?.code] || 'Unable to sign in. Check your credentials or contact the owner.';
 }
-
 async function start() {
   try {
-    const [{ initializeApp, getApps, getApp }, authSdk, { firebaseConfig }] = await Promise.all([
+    const [{ initializeApp, getApps, getApp }, sdk, { firebaseConfig }] = await Promise.all([
       import('https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js'),
       import('https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js'),
       import('./firebase-config.js')
     ]);
-    const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-      setPersistence, browserSessionPersistence } = authSdk;
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    await setPersistence(auth, browserSessionPersistence);
-    const provider = new GoogleAuthProvider();
+    const auth = sdk.getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
+    await sdk.setPersistence(auth, sdk.browserSessionPersistence);
+    const provider = new sdk.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-
-    onAuthStateChanged(auth, user => {
-      const googleUser = user && !user.isAnonymous &&
-        user.providerData.some(item => item.providerId === 'google.com');
-      signIn.hidden = Boolean(googleUser);
-      signOutButton.hidden = !user;
-      identity.hidden = !googleUser;
-      uid.value = googleUser ? user.uid : '';
-      $('organizer-account').textContent = googleUser ? (user.email || user.displayName || 'Google account') : '';
+    const busy = value => { googleButton.disabled = value; passwordButton.disabled = value; };
+    async function attempt(action) {
+      busy(true);
+      status.textContent = 'Signing in…';
+      try { await action(); }
+      catch (error) { status.textContent = message(error); }
+      finally { $('organizer-password').value = ''; busy(false); }
+    }
+    login.addEventListener('submit', event => {
+      event.preventDefault();
+      attempt(() => sdk.signInWithEmailAndPassword(auth, $('organizer-email').value.trim(), $('organizer-password').value));
+    });
+    googleButton.addEventListener('click', () => attempt(() => sdk.signInWithPopup(auth, provider)));
+    logout.addEventListener('click', async () => {
+      logout.disabled = true;
+      try { await sdk.signOut(auth); }
+      catch (error) { status.textContent = message(error); }
+      finally { logout.disabled = false; }
+    });
+    sdk.onAuthStateChanged(auth, async user => {
+      const current = ++revision;
+      identity.hidden = true;
+      uid.value = '';
       copyStatus.textContent = '';
-      status.textContent = googleUser
-        ? 'Signed in. Copy your user ID so we can finish setting up TO access.'
-        : 'Sign in with your organizer Google account.';
-      signIn.disabled = false;
-    }, error => {
-      status.textContent = authMessage(error);
-    });
-
-    signIn.addEventListener('click', async () => {
-      signIn.disabled = true;
-      status.textContent = 'Complete sign-in in the Google popup.';
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        status.textContent = authMessage(error);
-      } finally {
-        signIn.disabled = false;
+      $('organizer-account').textContent = '';
+      login.hidden = Boolean(user);
+      googleButton.hidden = Boolean(user);
+      logout.hidden = !user;
+      busy(false);
+      if (!user) {
+        status.textContent = 'Sign in using your approved organizer account.';
+        return;
       }
-    });
-    signOutButton.addEventListener('click', async () => {
-      signOutButton.disabled = true;
+      status.textContent = 'Checking organizer access…';
       try {
-        await signOut(auth);
-      } catch (error) {
-        status.textContent = authMessage(error);
-      } finally {
-        signOutButton.disabled = false;
+        const token = await user.getIdToken();
+        const response = await fetch(api + '/me', {
+          headers: { Authorization: 'Bearer ' + token },
+          signal: AbortSignal.timeout(15000)
+        });
+        if (current !== revision) return;
+        if (response.status === 403) {
+          status.textContent = 'This account does not have organizer access. Contact the owner.';
+          return;
+        }
+        if (!response.ok) throw new Error('Access check failed');
+        const data = await response.json();
+        if (current !== revision) return;
+        if (data.uid !== user.uid || !['owner', 'organizer'].includes(data.role)) throw new Error('Invalid access response');
+        identity.hidden = false;
+        uid.value = user.uid;
+        $('organizer-account').textContent = user.email || 'Organizer account';
+        status.textContent = data.role === 'owner' ? 'Owner access confirmed.' : 'Organizer access confirmed.';
+      } catch {
+        if (current === revision) status.textContent = 'Unable to verify organizer access. The organizer API may still need deployment or configuration.';
       }
-    });
-  } catch (error) {
-    status.textContent = authMessage(error);
+    }, error => { status.textContent = message(error); });
+  } catch {
+    status.textContent = 'Unable to load sign-in. Check the Firebase configuration and reload.';
   }
 }
-
 $('organizer-copy').addEventListener('click', async () => {
   if (!uid.value) return;
-  try {
-    await navigator.clipboard.writeText(uid.value);
-    copyStatus.textContent = 'User ID copied.';
-  } catch {
-    uid.focus();
-    uid.select();
-    copyStatus.textContent = 'Copy the selected user ID manually.';
-  }
+  try { await navigator.clipboard.writeText(uid.value); copyStatus.textContent = 'User ID copied.'; }
+  catch { uid.focus(); uid.select(); copyStatus.textContent = 'Copy the selected user ID manually.'; }
 });
 start();
