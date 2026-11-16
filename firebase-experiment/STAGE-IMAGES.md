@@ -1,19 +1,10 @@
 # Stage card images
 
-The match demo now supports image-based strike cards, large X overlays for pending and confirmed strikes, and a selected-stage preview. The rules remain 1–2–1, then three bans, with no DSR.
+All eight user-supplied stage screenshots are included in public/assets/stages as optimized JPEGs, up to 960×540. They are used on the strike cards and selected-stage preview.
 
-Stage pictures have not yet been supplied. Until then each card shows an explicitly labelled placeholder; a missing image does not prevent striking.
+Starters: Pokémon Stadium 2, Small Battlefield, Battlefield, Town and City, Smashville.
+Counterpicks: Final Destination, Kalos Pokémon League, Hollow Bastion.
 
-Add the user's images to public/assets/stages with these filenames:
-- pokemon-stadium-2.jpg
-- small-battlefield.jpg
-- battlefield.jpg
-- town-and-city.jpg
-- smashville.jpg
-- final-destination.jpg
-- kalos-pokemon-league.jpg
-- hollow-bastion.jpg
+Strikes show a large red X and a text label; pending strikes can be toggled before confirmation. Missing images fall back to a labelled stage abbreviation. Keyboard Space/Enter selection preserves focus.
 
-If images use a different format, update stageImages in public/match-demo.html to match their actual extensions. Do not merely rename PNG bytes to JPG. Cards use 16:9 crops with object-fit: cover.
-
-This is still a one-device demo, not live player rooms. Struck states are shown with both text and X overlays. Keyboard Space/Enter can select cards; focus is preserved after selection.
+Rules remain 1–2–1 for game one, then three bans, with no DSR. This is still a one-device demo, not live player rooms.
