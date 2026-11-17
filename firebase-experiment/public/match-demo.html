@@ -61,6 +61,9 @@
 #fsc-stage .ready-art{width:100%;margin:20px auto 0}
 #fsc-stage #st-ready .actions{justify-content:center}
 #fsc-stage button:focus-visible,#fsc-stage select:focus-visible{outline:3px solid #d4e9bd;outline-offset:3px}
+
+#fsc-stage .stage-check{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;pointer-events:none;background:#06201522}
+#fsc-stage .stage-check::after{content:"";width:42px;height:78px;border-right:12px solid #91ed6a;border-bottom:12px solid #91ed6a;transform:translateY(-12px) rotate(45deg);filter:drop-shadow(0 2px 3px #071b12)}
 </style>
 <div id="fsc-stage"><div class="inner"><header><div class="eyebrow">FSC SMASH ELO · MATCH ROOM</div><h1>Play / Report Match</h1><p class="small">DEMO ONLY · Both players and TO simulated on this device · Refresh resets progress</p></header>
 <div class="scoreboard"><div><strong>Ethanmagoo</strong><span class="small">Player 1</span></div><div class="score" id="st-score">0 – 0</div><div class="right"><strong>Louie</strong><span class="small">Player 2</span></div></div>
@@ -84,6 +87,7 @@ function appendLog(message){const li=document.createElement('li');li.textContent
 function actor(){return game===1?(step===1?1-first:first):(step===0?previous:1-previous)}
 function quota(){return game===1?[1,2,1][step]:(step===0?3:1)}
 function picking(){return game>1&&step===1}
+function stageCheck(){const check=document.createElement('span');check.className='stage-check';check.setAttribute('aria-hidden','true');return check}
 function render(focusStage){
 const who=names[actor()],need=quota(),pick=picking();
 q('turn').textContent=`${who}: ${pick?'Choose a stage':`${game===1?'Strike':'Ban'} ${need} stage${need>1?'s':''}`}`;
@@ -104,7 +108,7 @@ button.className='tile'+(isBanned?' banned':'')+(unavailable?' unavailable':'')+
 button.disabled=isBanned||unavailable;button.setAttribute('aria-pressed',String(chosen));
 const state=isBanned?'Struck':unavailable?'Available from game 2':chosen?(pick?'Selected stage':'Strike selected — confirm below'):(pick?'Choose this stage':'Tap to strike');
 button.setAttribute('aria-label',s.name+' — '+state);
-const space=artwork(s),cross=document.createElement('span');cross.className='strike-mark';cross.setAttribute('aria-hidden','true');space.append(cross);
+const space=artwork(s),cross=document.createElement('span');cross.className='strike-mark';cross.setAttribute('aria-hidden','true');space.append(cross);if(chosen&&pick)space.append(stageCheck());
 const title=document.createElement('strong');title.textContent=s.name;
 const sub=document.createElement('small');sub.textContent=s.counter?'Counterpick':'Starter';
 const badge=document.createElement('span');badge.className='stage-state';badge.textContent=state;
@@ -115,7 +119,7 @@ rows[s.counter?'counterpicks':'starters'].append(button);if(focusStage===s.name)
 q('confirm').disabled=selected.size!==need;q('confirm').textContent=pick?'Confirm stage':`Confirm ${need} ban${need>1?'s':''}`;
 q('progress').textContent=`${selected.size} of ${need} selected`;
 }
-function lock(stage,method){phase='ready';locked=stage;visibility('ready');q('ready-title').textContent=`Ready for game ${game}`;q('stage-name').textContent=stage;const art=artwork(stages.find(s=>s.name===stage));q('stage-art').replaceChildren(...art.childNodes);q('method').textContent=method}
+function lock(stage,method){phase='ready';locked=stage;visibility('ready');q('ready-title').textContent=`Ready for game ${game}`;q('stage-name').textContent=stage;const art=artwork(stages.find(s=>s.name===stage));q('stage-art').replaceChildren(...art.childNodes,stageCheck());q('method').textContent=method}
 q('choice-a').addEventListener('change',checkAgreement);q('choice-b').addEventListener('change',checkAgreement);q('agree-confirm').addEventListener('click',()=>{if(q('choice-a').value&&q('choice-a').value===q('choice-b').value)lock(q('choice-a').value,'Selected by mutual agreement')});
 q('standard').addEventListener('click',()=>{if(phase!=='agreement')return;phase='striking';if(game===1){first=crypto.getRandomValues(new Uint32Array(1))[0]%2;appendLog(`${names[first]} randomly selected to strike first.`)}visibility('selection');render()});
 q('confirm').addEventListener('click',()=>{if(phase!=='striking'||selected.size!==quota())return;if(picking()){lock([...selected][0],`${names[actor()]}’s counterpick`);return}appendLog(`${names[actor()]} banned ${[...selected].join(', ')}.`);selected.forEach(s=>banned.add(s));selected.clear();step++;if(game===1&&step===3){lock(available().find(s=>!banned.has(s.name)).name,'Remaining starter after 1–2–1 striking')}else render()});
