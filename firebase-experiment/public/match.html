@@ -65,10 +65,13 @@
 
 #fsc-stage .stage-check{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;pointer-events:none;transform:translateY(-12%);background:#06201522}
 #fsc-stage .stage-check::after{content:"";width:30%;height:80%;border-right:12px solid #91ed6a;border-bottom:12px solid #91ed6a;transform:rotate(45deg);filter:drop-shadow(0 2px 3px #071b12)}
+#fsc-stage .room-choice{display:block;width:100%;text-align:left;margin-top:12px;white-space:normal;overflow-wrap:anywhere}#fsc-stage .room-choice strong,#fsc-stage .room-choice small{display:block}#fsc-stage .lobby-group{margin-top:24px}
 </style></head><body><a class="demo-back" href="index.html">Back to rankings</a><div id="fsc-stage"><div class="inner">
 <header><div class="eyebrow">FSC SMASH ELO · LIVE MATCH ROOM</div><h1 id="match-title">Join your set</h1><p id="room-label"></p></header>
 <p id="connection" role="status" aria-live="polite"></p>
-<form id="join-form" class="panel"><label>Your private player code<input id="player-code" required autocomplete="off" spellcheck="false" maxlength="24"></label><button class="primary" type="submit">Join match</button><p class="small">Use the code supplied by the TO for your side of this set.</p></form>
+<section id="room-picker" class="panel" hidden><h2>Choose your match</h2><p>Select your set, then enter the private code supplied by the TO.</p><button id="reload-rooms" type="button">Refresh available rooms</button><p id="lobby-status" role="status"></p><div id="available-rooms"></div></section>
+<p id="back-to-rooms" hidden><a href="match.html">Choose a different match</a></p>
+<form id="join-form" class="panel"><label>Your player code<input id="player-code" required autocomplete="off" spellcheck="false" maxlength="24" inputmode="numeric" placeholder="6-digit code"></label><button class="primary" type="submit">Join match</button><p class="small">Use the code supplied by the TO for your side of this set.</p></form>
 <div id="player-identity" hidden><p id="your-name"></p><button id="leave-room" type="button">Leave this device</button></div>
 <div id="score" class="scoreboard" hidden></div>
 <section id="controls" class="panel" hidden></section>

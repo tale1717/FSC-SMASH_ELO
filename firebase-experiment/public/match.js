@@ -72,5 +72,25 @@ function renderStages(){
 }
 $('stage-submit').addEventListener('click',()=>action({action:'stages',stages:[...selected]}));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&code&&!busy)poll()});
-if(!validId){$('connection').textContent='Open the match-room link supplied by your TO.';$('join-form').hidden=true;}
-else if(code)poll();
+let lobbyBusy=false;
+async function loadLobby(){
+  if(lobbyBusy)return;lobbyBusy=true;$('reload-rooms').disabled=true;$('lobby-status').textContent='Loading available rooms…';
+  try{
+    const response=await fetch(API+'/lobby',{signal:AbortSignal.timeout(15000)}),data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Could not load rooms.');
+    if(!Array.isArray(data.rooms))throw new Error('Unexpected room response.');
+    const list=$('available-rooms');list.replaceChildren();const groups=new Map();
+    for(const room of data.rooms){
+      if(!/^[a-z0-9-]{36}$/.test(room.id))continue;
+      let group=groups.get(room.tournament.id);
+      if(!group){group=document.createElement('section');group.className='lobby-group';group.append(text('h3',room.tournament.name));groups.set(room.tournament.id,group);list.append(group)}
+      const pick=button('',()=>{location.href='match.html?room='+encodeURIComponent(room.id)});pick.className='room-choice';
+      pick.append(text('strong',room.match.players.map(p=>p.name).join(' vs ')),text('small','Match '+room.match.identifier+' · Best of '+room.bestOf+(room.isTest?' · Test — no Elo':'')));group.append(pick);
+    }
+    $('lobby-status').textContent=data.rooms.length?'Choose the set with your name.':'No player rooms are available yet. Ask the TO to create a room, then refresh.';
+  }catch(error){$('available-rooms').replaceChildren();$('lobby-status').textContent=error.message}
+  finally{lobbyBusy=false;$('reload-rooms').disabled=false}
+}
+$('reload-rooms').addEventListener('click',loadLobby);
+if(!validId){$('join-form').hidden=true;$('room-picker').hidden=false;$('match-title').textContent='Choose your match';loadLobby();}
+else{$('back-to-rooms').hidden=false;if(code)poll();}

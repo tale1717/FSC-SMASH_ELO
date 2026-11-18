@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 (async()=>{
  const {fixture}=await import('../cloudflare-worker/room-fixture.mjs');
- const f=fixture(),created=await f.create();
+ const f=fixture(),created=await f.create();await f.create('51');
  const browser=await chromium.launch({headless:true});
  try{
   const pages=[];
@@ -22,7 +22,12 @@ const path=require('node:path');
     await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
    });
    const page=await context.newPage();pages.push(page);
-   await page.goto('https://fsc-smash-elo.web.app/match.html?room='+created.room.id);
+   await page.goto('https://fsc-smash-elo.web.app/match.html');
+   await page.getByRole('button',{name:/Alice vs Bob/}).waitFor();
+   assert.equal(await page.locator('.room-choice').count(),2);
+   await page.getByRole('button',{name:/Alice vs Bob/}).click();
+   await page.waitForURL('**/match.html?room='+created.room.id);
+   assert.match(created.codes[actor],/^[0-9]{6}$/);
    await page.locator('#player-code').fill(created.codes[actor]);
    await page.getByRole('button',{name:'Join match',exact:true}).click();
    await page.locator('#your-name').waitFor();
@@ -43,3 +48,4 @@ const path=require('node:path');
   console.log('Two separate players completed and confirmed a shared test set; TO approval and locked-stage artwork passed.');
  }finally{await browser.close();f.sqlite.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
+

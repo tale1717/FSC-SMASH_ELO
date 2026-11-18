@@ -1,6 +1,6 @@
 # Live match rooms
 
-The organizer loads open Challonge sets and creates one shared room per set. Each player receives the same room link and a different private code. Players join from their own device; only their own character choice, stage turn, game report and final confirmation are accepted. Both game reports must agree before advancing. Both players confirm the final result before the TO approves it.
+The organizer loads open Challonge sets and creates one shared room per set. Players can choose their set on `match.html`, or use the same room link. Each player receives a different private six-digit code. Players join from their own device; only their own character choice, stage turn, game report and final confirmation are accepted. Both game reports must agree before advancing. Both players confirm the final result before the TO approves it.
 
 Results stay in Cloudflare D1. The TO still enters the official score on Challonge. This feature does not write Elo or Challonge scores. Stage/character history is stored in the room; publishing that history to player analytics is a separate integration.
 
@@ -26,7 +26,7 @@ Create a singles, single-stage Super Smash Bros. Ultimate tournament named exact
 
 The Elo importer rejects tournament names containing the words test, dummy or practice, including completed test events. Keep the test name. For permanent exclusion even if renamed, add its numeric ID and/or URL slug to `excluded-tournaments.json` before completing it. Never use one of the real seeded tournament URLs for a test.
 
-In the Organizer page, load tournaments, select the test bracket, and refresh matches. All open sets with known opponents are listed. Choose Best of 3 or Best of 5 and create a player room. Give each player only their own code. Codes are shown after creation or reissue, stored hashed on the server, and expire after 48 hours. Reissue replaces that player's old code.
+In the Organizer page, load tournaments, select the test bracket, and refresh matches. All open sets with known opponents are listed. Choose Best of 3 or Best of 5 and create a player room. Give each player only their own six-digit code. Existing 24-character codes continue working until reissued. Use Reissue for each player to replace old codes with six-digit numbers. No failed-attempt limits are applied. Codes are shown after creation or reissue, stored hashed on the server, and expire after 48 hours. Reissue replaces that player's old code.
 
 Players' pages refresh every five seconds while visible. The TO manually refreshes rooms to review confirmations and approve a result. After approval, manually enter the score in Challonge and refresh matches to see newly available sets. Approval on this site alone does not advance Challonge.
 
@@ -41,3 +41,4 @@ python -m unittest discover -s firebase-experiment/tests
 ```
 
 The room API tests use SQLite with real SQL and mocked external authentication/Challonge responses. The browser test uses two isolated player sessions through the actual room handler. Node 22 or newer with node:sqlite is required for these tests.
+

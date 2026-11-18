@@ -52,3 +52,25 @@ test('TO approval and correction are authenticated and never write Challonge',as
  const approved=await (await f.send('/rooms/'+a.room.id,{action:'approve',revision:1})).json();assert.equal(approved.state.phase,'approved');assert.equal(approved.state.isTest,true);
  }finally{f.sqlite.close()}
 });
+
+test('public lobby exposes only room summaries and six-digit codes stay private',async()=>{
+ const f=fixture();try{
+  const a=await f.create(),b=await f.create('51');
+  for(const code of a.codes)assert.match(code,/^[0-9]{6}$/);
+  assert.notEqual(a.codes[0],a.codes[1]);
+  const lobby=await(await f.send('/lobby',null,'')).json();
+  assert.equal(lobby.rooms.length,2);
+  const room=lobby.rooms.find(r=>r.id===a.room.id);
+  assert.deepEqual(Object.keys(room).sort(),['bestOf','id','isTest','match','tournament']);
+  assert.deepEqual(room.match.players,[{name:'Alice'},{name:'Bob'}]);
+  assert(!JSON.stringify(lobby).includes(a.codes[0]));
+  assert.equal((await f.send('/lobby',{action:'create'},'')).status,405);
+  const row=f.sqlite.prepare('SELECT state FROM match_rooms WHERE id=?').get(a.room.id);
+  const state=JSON.parse(row.state);state.phase='review';
+  f.sqlite.prepare('UPDATE match_rooms SET state=? WHERE id=?').run(JSON.stringify(state),a.room.id);
+  assert.equal((await(await f.send('/lobby',null,'')).json()).rooms.length,2);
+  state.phase='approved';f.sqlite.prepare('UPDATE match_rooms SET state=? WHERE id=?').run(JSON.stringify(state),a.room.id);
+  f.sqlite.prepare('UPDATE match_rooms SET expires_at=0 WHERE id=?').run(b.room.id);
+  assert.equal((await(await f.send('/lobby',null,'')).json()).rooms.length,0);
+ }finally{f.sqlite.close()}
+});

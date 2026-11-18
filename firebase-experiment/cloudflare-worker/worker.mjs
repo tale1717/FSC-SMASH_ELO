@@ -16,17 +16,18 @@ export async function handle(request, env, fetcher = fetch) {
   if (origin && !ORIGINS.has(origin)) return reply(403, { error: 'Origin not allowed' });
   const path = new URL(request.url).pathname;
   if (request.method === 'OPTIONS') {
-    if (!['/me', '/tournaments', '/matches', '/rooms'].includes(path) && !/^\/(?:play|rooms)\/[a-z0-9-]+$/.test(path)) return reply(404, { error: 'Not found' });
+    if (!['/me', '/tournaments', '/matches', '/rooms', '/lobby'].includes(path) && !/^\/(?:play|rooms)\/[a-z0-9-]+$/.test(path)) return reply(404, { error: 'Not found' });
     return new Response(null, { status: 204, headers: {
       ...headers, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '600'
     } });
   }
   if (!['GET', 'POST'].includes(request.method)) return reply(405, { error: 'Method not allowed' });
+  if (path === '/lobby') return roomSafe(() => publicLobby(request, env, reply), reply);
   if (path.startsWith('/play/')) return roomSafe(() => playerRoom(request, env, path.split('/')[2], reply), reply);
   if (request.method === 'POST' && !path.startsWith('/rooms')) return reply(405, { error: 'Method not allowed' });
   if (path === '/') return reply(200, { service: 'FSC Smash Elo organizer API', status: 'ready' });
-  if (!['/me', '/tournaments', '/matches', '/rooms'].includes(path) && !/^\/(?:play|rooms)\/[a-z0-9-]+$/.test(path)) return reply(404, { error: 'Not found' });
+  if (!['/me', '/tournaments', '/matches', '/rooms', '/lobby'].includes(path) && !/^\/(?:play|rooms)\/[a-z0-9-]+$/.test(path)) return reply(404, { error: 'Not found' });
   if (!env.FIREBASE_WEB_API_KEY || !env.OWNER_UID) return reply(503, { error: 'API configuration required' });
   const bearer = request.headers.get('Authorization') || '';
   if (!/^Bearer \S+$/.test(bearer) || bearer.length > 16000) return reply(401, { error: 'Sign-in required' });
@@ -216,7 +217,25 @@ async function roomBody(request){
   catch(e){if(e instanceof RoomError)throw e;throw new RoomError('Invalid JSON.')}
 }
 function database(env){requireRoom(env.MATCH_DB,'Add the MATCH_DB D1 binding and run schema.sql first.',503);return env.MATCH_DB;}
-function newCode(){return Array.from(crypto.getRandomValues(new Uint8Array(12)),n=>n.toString(16).padStart(2,'0')).join('').toUpperCase();}
+function newCode(){
+  // Rejection sampling keeps every six-digit code equally likely, including leading zeroes.
+  let value;do{value=crypto.getRandomValues(new Uint32Array(1))[0]}while(value>=4294000000);
+  return String(value%1000000).padStart(6,'0');
+}
+async function distinctCode(room,...otherHashes){
+  let code;do{code=newCode()}while(otherHashes.includes(await codeHash(room,code)));return code;
+}
+async function publicLobby(request,env,reply){
+  requireRoom(request.method==='GET','Method not allowed.',405);
+  const rows=await database(env).prepare('SELECT id,state,created_at FROM match_rooms WHERE expires_at > ? ORDER BY created_at DESC LIMIT 300').bind(Date.now()).all();
+  // Publish only the information needed to identify a set, never codes or private room state.
+  const rooms=rows.results.flatMap(row=>{
+    const s=JSON.parse(row.state);
+    if(s.phase==='approved')return [];
+    return [{id:row.id,tournament:{id:s.tournament.id,name:s.tournament.name},match:{identifier:s.match.identifier,players:s.match.players.map(p=>({name:p.name}))},bestOf:s.bestOf,isTest:s.isTest===true}];
+  });
+  return reply(200,{rooms});
+}
 async function codeHash(room,code){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(room+':'+code.trim().toUpperCase()))),n=>n.toString(16).padStart(2,'0')).join('');}
 export function initialRoom(tournament,match,bestOf){return {tournament,match,bestOf,isTest:tournament.isTest===true,phase:'joining',joined:[false,false],characters:[null,null],choices:[null,null],winnerVotes:[null,null],confirmed:[false,false],records:[],wins:[0,0],game:1,stage:null,banned:[],step:0,first:null,previous:null,log:[]};}
 function nextGame(s){s.phase='characters';s.characters=[null,null];s.choices=[null,null];s.winnerVotes=[null,null];s.stage=null;s.banned=[];s.step=0;s.first=null;}
@@ -275,7 +294,7 @@ async function saveRoom(db,row,state){
 }
 async function playerRoom(request,env,id,reply){
   const db=database(env),row=await getRoom(db,id);requireRoom(Date.now()<row.expires_at,'This room expired. Contact the TO.',410);
-  const code=(request.headers.get('Authorization')||'').replace(/^Bearer /,'');requireRoom(/^[a-f0-9]{24}$/i.test(code),'Enter your private player code.',401);
+  const code=(request.headers.get('Authorization')||'').replace(/^Bearer /,'');requireRoom(/^(?:[0-9]{6}|[a-f0-9]{24})$/i.test(code),'Enter your private player code.',401);
   const hash=await codeHash(id,code),actor=hash===row.code_a?0:hash===row.code_b?1:null;requireRoom(actor!==null,'Incorrect player code.',403);
   if(request.method==='GET')return reply(200,publicRoom(row,actor));
   requireRoom(request.method==='POST','Method not allowed.',405);const body=await roomBody(request);requireRoom(body.revision===row.revision,'The match changed. Refresh before acting.');
@@ -293,7 +312,7 @@ async function organizerRooms(request,env,fetcher,uid,reply){
       requireRoom(['review','pending'].includes(state.phase),'Only unapproved final results can be corrected.');const last=state.records.pop();requireRoom(last,'No completed game to correct.');
       state.wins[last.winner]--;state.game=last.game;state.characters=last.characters;state.stage=last.stage;state.phase='result';state.winnerVotes=[null,null];state.confirmed=[false,false];state.previous=state.records.at(-1)?.winner??null;
     }else if(input.action==='reissue'){
-      requireRoom(input.player===0||input.player===1,'Choose a player.',400);requireRoom(!['approved'].includes(state.phase),'This set is already approved.');const code=newCode(),hash=await codeHash(row.id,code);
+      requireRoom(input.player===0||input.player===1,'Choose a player.',400);requireRoom(!['approved'].includes(state.phase),'This set is already approved.');const code=await distinctCode(row.id,row.code_a,row.code_b),hash=await codeHash(row.id,code);
       const column=input.player===0?'code_a':'code_b';
       const updated=await db.prepare('UPDATE match_rooms SET '+column+' = ?, revision = revision + 1, expires_at = ? WHERE id = ? AND revision = ?').bind(hash,Date.now()+48*3600000,row.id,row.revision).run();
       requireRoom(updated.meta.changes===1,'Room changed; retry.');return reply(200,{code,player:input.player});
@@ -312,8 +331,10 @@ async function organizerRooms(request,env,fetcher,uid,reply){
   const people=await collection('tournaments/'+event.id+'/participants','participant',key,fetcher,signal);
   const matches=await collection('tournaments/'+event.id+'/matches','match',key,fetcher,signal);
   const match=openMatches(matches,people).matches.find(m=>m.id===input.match);requireRoom(match,'This set is no longer open. Refresh the list.');
-  const id=crypto.randomUUID(),codes=[newCode(),newCode()],hashes=await Promise.all(codes.map(c=>codeHash(id,c))),state=initialRoom(event,match,input.bestOf),now=Date.now();
+  const id=crypto.randomUUID(),first=newCode(),firstHash=await codeHash(id,first);
+  const codes=[first,await distinctCode(id,firstHash)],hashes=await Promise.all(codes.map(c=>codeHash(id,c))),state=initialRoom(event,match,input.bestOf),now=Date.now();
   const inserted=await db.prepare('INSERT OR IGNORE INTO match_rooms (id,tournament_id,match_id,code_a,code_b,state,revision,created_at,expires_at) VALUES (?,?,?,?,?,?,0,?,?)').bind(id,event.id,match.id,...hashes,JSON.stringify(state),now,now+48*3600000).run();
   requireRoom(inserted.meta.changes===1,'A room already exists for this set. Refresh rooms; reissue codes there if necessary.');
   return reply(201,{room:{id,revision:0,state},codes});
 }
+
