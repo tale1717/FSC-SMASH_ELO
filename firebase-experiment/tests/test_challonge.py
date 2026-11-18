@@ -101,14 +101,14 @@ class ApiTests(unittest.TestCase):
 
     def test_bye_and_dq_exclusion(self):
         bye = match(); bye['attributes']['relationships']['player1']['data'] = None
-        event = dict(id='1', started='2026-10-01T12:00:00Z', slug='test', name='Test')
+        event = dict(id='1', started='2026-10-01T12:00:00Z', slug='synthetic-bracket', name='FSC Fall Bracket Synthetic')
         source = normalize(event, [{'id': 1, 'name': 'A'}, {'id': 2, 'name': 'B'}],
                            [challonge.match_record(match()), challonge.match_record(bye),
                             challonge.match_record(match(scores='-1 - 0'))])
         self.assertEqual((len(source['matches']), source['skipped']), (1, 2))
 
     def test_preview_validates_without_firestore(self):
-        event = dict(id='1', started='2026-10-01T12:00:00Z', slug='test', name='Test')
+        event = dict(id='1', started='2026-10-01T12:00:00Z', slug='synthetic-bracket', name='FSC Fall Bracket Synthetic')
         with patch.dict('os.environ', {'CHALLONGE_API_KEY': 'key'}), patch.object(sys, 'argv', ['importer.py']), \
              patch('importer.select', return_value=[event]), patch('challonge.tournaments', return_value=[]), \
              patch('challonge.participants', return_value=[{'id': 1, 'name': 'A'}, {'id': 2, 'name': 'B'}]), \
