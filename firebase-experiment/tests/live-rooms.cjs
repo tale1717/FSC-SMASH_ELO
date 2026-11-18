@@ -28,7 +28,7 @@ const path=require('node:path');
    await page.locator('#your-name').waitFor();
   }
   async function sync(page){await page.reload();await page.locator('#your-name').waitFor();}
-  async function choose(page,label,value,button){await sync(page);await page.getByLabel(label,{exact:true}).selectOption(value);await page.getByRole('button',{name:button,exact:true}).click();await page.getByText('Saved. Waiting for the other player when needed.',{exact:true}).waitFor();}
+  async function choose(page,label,value,button){await sync(page);console.log('Choosing',label,value,'UI:',await page.locator('#controls').innerText());await page.getByLabel(label,{exact:true}).selectOption(value);await page.getByRole('button',{name:button,exact:true}).click();await page.getByText('Saved. Waiting for the other player when needed.',{exact:true}).waitFor();}
   for(let game=1;game<=2;game++){
    for(const page of pages)await choose(page,'Your character','Mario','Confirm character');
    for(const page of pages)await choose(page,'Your choice','Battlefield','Confirm my choice');

@@ -36,11 +36,11 @@ function render(){
   if(!s.joined[me]){panel('Join this match');controls.append(button('Join as '+names[me],()=>action({action:'join'}),busy));}
   else if(s.phase==='joining'){panel('Waiting for the other player');controls.append(text('p','Both players must join before character selection.'));}
   else if(s.phase==='characters'){
-    panel('Game '+s.game+' · Choose your character');const label=text('label','Your character'),choice=select(view.characters,s.characters[me]||'');label.append(choice);controls.append(label);
+    panel('Game '+s.game+' · Choose your character');const label=text('label','Your character'),choice=select(view.characters,s.characters[me]||'');choice.setAttribute('aria-label',label.textContent);label.append(choice);controls.append(label);
     const confirm=button('Confirm character',()=>action({action:'character',character:choice.value}),busy||!choice.value);choice.addEventListener('change',()=>confirm.disabled=busy||!choice.value);controls.append(confirm);
     if(s.characters[me])controls.append(text('p','Your choice: '+s.characters[me]+'. Waiting for the other player.'));
   }else if(s.phase==='agreement'){
-    panel('Agree on a stage?');const label=text('label','Your choice'),choice=select(view.stages.filter(x=>s.game>1||!x.counter).map(x=>x.name),s.choices[me]||'');label.append(choice);controls.append(label);
+    panel('Agree on a stage?');const label=text('label','Your choice'),choice=select(view.stages.filter(x=>s.game>1||!x.counter).map(x=>x.name),s.choices[me]||'');choice.setAttribute('aria-label',label.textContent);label.append(choice);controls.append(label);
     const agree=button('Confirm my choice',()=>action({action:'agree',stage:choice.value}),busy||!choice.value);choice.addEventListener('change',()=>agree.disabled=busy||!choice.value);controls.append(agree,button('Use stage striking',()=>action({action:'standard'}),busy));
     controls.append(text('p','Other player: '+(s.choices[1-me]||'has not chosen yet')+'. Matching choices lock the stage.'));
   }else if(s.phase==='striking'){renderStages();}
