@@ -150,18 +150,21 @@ function bracketUrl(slug) {
   return 'https://challonge.com/' + slug;
 }
 export function openMatches(rows, participants) {
-  const names = new Map(participants.map(p => [p.id, p.attributes.name]));
+  const names = new Map(participants.map(p => [String(p.id), p.attributes.name]));
   const matches = [];
   let unresolved = 0;
   for (const row of rows) {
     const a = row.attributes;
     if (!['open', 'underway'].includes(a.state) || a.winner_id != null) continue;
-    const relationships = a.relationships || row.relationships || {};
-    const ids = ['player1', 'player2'].map(slot => {
-      const id = relationships[slot]?.data?.id;
-      return id == null ? null : String(id);
-    });
-    // Do not guess bracket slots from participant order or score arrays.
+    // Prefer explicit player relationships when supplied; null slots remain unresolved.
+    const slot = name => a.relationships?.[name] ?? row.relationships?.[name];
+    const hasSlots = ['player1', 'player2'].some(name => slot(name) !== undefined);
+    const sources = hasSlots
+      ? ['player1', 'player2'].map(name => slot(name)?.data?.id)
+      : Array.isArray(a.points_by_participant) && a.points_by_participant.length === 2
+        ? a.points_by_participant.map(p => p?.participant_id) : [null, null];
+    // The fallback identifies the two entrants, not a guessed score or bracket position.
+    const ids = sources.map(id => id == null ? null : String(id));
     if (ids.some(id => !id || !names.has(id)) || ids[0] === ids[1]) { unresolved++; continue; }
     matches.push({
       id: row.id, identifier: String(a.identifier || row.id),

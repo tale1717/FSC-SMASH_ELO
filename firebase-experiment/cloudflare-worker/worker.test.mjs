@@ -212,3 +212,32 @@ test('invalid key characters fail before contacting Challonge',async()=>{
  assert.equal(r.status,503);
  assert((await r.json()).error.includes('invalid characters'));
 });
+
+test('live points_by_participant IDs resolve open sets without player relationships', () => {
+  // Shape and IDs from the supplied test bracket response; names are synthetic fixtures.
+  const pairs = [[309445513,309445514],[309445509,309445583],[309445510,309445515]];
+  const people = pairs.flat().map(id => ({id:String(id),attributes:{name:'Player '+id}}));
+  const rows = pairs.map((ids,i) => ({id:String(479776251+i),attributes:{
+    state:'open',round:1,identifier:['B','C','D'][i],winner_id:null,
+    points_by_participant:ids.map(participant_id=>({participant_id,scores:[]}))
+  },relationships:{attachments:{data:[]}}}));
+  const result=openMatches(rows,people);
+  assert.equal(result.unresolved,0);
+  assert.deepEqual(result.matches.map(m=>m.players.map(p=>p.id)),pairs.map(p=>p.map(String)));
+  for(const ids of [[null,pairs[0][1]],[pairs[0][0],pairs[0][0]],[999,pairs[0][1]]]){
+    const broken=structuredClone(rows[0]);
+    broken.attributes.points_by_participant=ids.map(participant_id=>({participant_id,scores:[]}));
+    assert.equal(openMatches([broken],people).unresolved,1);
+  }
+  const pending=structuredClone(rows[0]);pending.attributes.state='pending';
+  assert.equal(openMatches([pending],people).matches.length,0);
+  const complete=structuredClone(rows[0]);complete.attributes.state='complete';
+  assert.equal(openMatches([complete],people).matches.length,0);
+  const nullSlot=structuredClone(rows[0]);
+  nullSlot.relationships.player1={data:null};
+  nullSlot.relationships.player2={data:{id:String(pairs[0][1])}};
+  assert.equal(openMatches([nullSlot],people).unresolved,1);
+  const oversized=structuredClone(rows[0]);
+  oversized.attributes.points_by_participant.push({participant_id:309445509});
+  assert.equal(openMatches([oversized],people).unresolved,1);
+});
