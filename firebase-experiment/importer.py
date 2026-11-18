@@ -19,7 +19,8 @@ def main():
     parser.add_argument('--refresh', action='store_true', help='Refetch all selected brackets, including edited results')
     args = parser.parse_args()
     key = challonge.credentials()
-    events = select(challonge.tournaments(key))
+    exclusions = json.loads(Path(__file__).with_name('excluded-tournaments.json').read_text())
+    events = select(challonge.tournaments(key), {str(x) for x in exclusions['ids']}, set(exclusions['slugs']))
     for event in events:
         print(f"Selected {event['name']} | https://challonge.com/{event['slug']}")
     if not args.publish:
@@ -109,3 +110,4 @@ if __name__ == '__main__':
                 if marker in message:
                     print(description, file=sys.stderr)
         sys.exit(1)
+

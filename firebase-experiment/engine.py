@@ -20,7 +20,11 @@ def instant(value):
     return date
 
 
-def select(events):
+def is_test_event(t):
+    return bool(t.get("isTest") or re.search(r"\b(test|dummy|practice)\b", t.get("name", ""), re.I))
+
+
+def select(events, excluded_ids=(), excluded_slugs=()):
     by_slug = {t['url']: t for t in events}
     reference = by_slug.get(SEEDS[-1], {})
     def game_of(t):
@@ -43,6 +47,10 @@ def select(events):
         if t.get('state') != 'complete' or game_of(t) != game:
             continue
         seed = t['url'] in SEEDS
+        if is_test_event(t) or str(t['id']) in excluded_ids or t['url'] in excluded_slugs:
+            if seed:
+                raise ValueError('A seed tournament is marked as excluded/test; review configuration')
+            continue
         if not seed and not t['name'].startswith(PREFIX):
             continue
         date = started(t)
@@ -137,6 +145,8 @@ def build(sources, aliases):
     ordered = sorted(sources, key=lambda s: (instant(s['event']['started']), int(s['event']['id'])))
     for source in ordered:
         event = source['event']
+        if is_test_event(event):
+            raise ValueError('Test tournaments cannot contribute to Elo')
         if event['id'] in source_ids:
             raise ValueError('Duplicate tournament source')
         source_ids.add(event['id'])
@@ -166,3 +176,4 @@ def build(sources, aliases):
                   tournaments=events, matches=history)
     validate_size(result)
     return result
+

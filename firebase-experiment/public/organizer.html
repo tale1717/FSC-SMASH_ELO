@@ -13,7 +13,7 @@
 #organizer-account{overflow-wrap:anywhere}
 .match-card{padding:18px;background:#123526;border:1px solid #2d5540;border-radius:10px;margin:12px 0}
 .match-card h3{margin:0 0 10px;overflow-wrap:anywhere}.match-card p{margin:6px 0;color:#b5cbbb}
-#live-status{line-height:1.6}#tournament-select{width:100%;max-width:640px}
+#room-panel button{padding:12px 16px;border:1px solid #637268;border-radius:6px;min-height:44px}#room-panel input{max-width:100%;width:330px}#room-panel select{font:inherit}#live-status{line-height:1.6}#tournament-select{width:100%;max-width:640px}
 </style>
 </head>
 <body>
@@ -43,7 +43,7 @@
 <h2 id="live-heading">Active Challonge matches</h2>
 <p class="section-note">Enter the score on Challonge first, then refresh here to see the next available matches.</p>
 <div class="organizer-actions"><button id="load-tournaments" type="button">Load / reload tournaments</button></div>
-<label for="tournament-select">In-progress FSC Fall bracket</label>
+<label for="tournament-select">In-progress FSC bracket (including FSC Test Bracket)</label>
 <select id="tournament-select" disabled><option value="">Load tournaments to begin</option></select>
 <div class="organizer-actions"><button id="refresh-matches" type="button" disabled>Refresh matches from Challonge</button></div>
 <p id="live-status" role="status" aria-live="polite">Load tournaments to begin.</p>
@@ -51,8 +51,9 @@
 <p><a id="live-bracket" target="_blank" rel="noopener noreferrer" hidden>Open bracket on Challonge</a></p>
 <div id="live-matches"></div>
 </section>
-<p class="section-note">This dashboard reads Challonge only. Player rooms and final result approval are not connected yet.</p>
+<p class="section-note">Player rooms sync independently of Challonge. After TO approval, enter the score on Challonge manually. Test rooms never update Elo.</p>
 </main>
 <script type="module" src="organizer.js"></script>
 </body>
 </html>
+

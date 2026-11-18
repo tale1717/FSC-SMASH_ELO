@@ -27,6 +27,17 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(len(result['matches']),8)
         self.assertEqual(build(sources[:3],{'Alt':'A'})['players'][0]['tournamentCount'],3)
 
+    def test_test_brackets_never_contribute_to_elo(self):
+        events=self.events()
+        for name in ['FSC Test Bracket', 'FSC Fall Bracket Test', 'FSC Fall Bracket dummy']:
+            event=dict(events[-1], id=99, url='test-event', name=name, started_at='2026-11-20T00:00:00Z')
+            self.assertEqual(len(select(events+[event])),4)
+        renamed=dict(event,name='FSC Fall Bracket #99')
+        self.assertEqual(len(select(events+[renamed], excluded_ids={'99'})),4)
+        self.assertEqual(len(select(events+[renamed], excluded_slugs={'test-event'})),4)
+        source=self.source();source['event']['name']='FSC Test Bracket'
+        with self.assertRaises(ValueError): build([source],{})
+
     def test_selection(self):
         events=self.events()
         for i,(name,state,game,date) in enumerate([
@@ -99,3 +110,4 @@ class EngineTests(unittest.TestCase):
         with self.assertRaises(ValueError): validate_size({'data':'x'*750001})
 
 if __name__=='__main__': unittest.main()
+

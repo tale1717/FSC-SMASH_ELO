@@ -65,7 +65,7 @@ const root = path.resolve(__dirname, '../public');
   assert.equal(await page.locator('#live-updated').textContent(),'');
   empty=true;
   await page.getByRole('button',{name:'Load / reload tournaments'}).click();
-  await page.getByText('No in-progress FSC Fall brackets found.',{exact:false}).waitFor();
+  await page.getByText('No in-progress FSC brackets found.',{exact:false}).waitFor();
   assert(await page.locator('#refresh-matches').isDisabled());
   await page.setViewportSize({width:360,height:800});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
@@ -74,3 +74,4 @@ const root = path.resolve(__dirname, '../public');
   console.log('Organizer dashboard browser checks passed.');
  } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});
+

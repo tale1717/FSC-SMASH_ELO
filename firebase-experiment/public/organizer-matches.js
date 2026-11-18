@@ -1,4 +1,6 @@
+import { createRoomDashboard } from './organizer-rooms.js';
 export function createLiveDashboard(auth, api) {
+  const rooms = createRoomDashboard(auth, api);
   const $ = id => document.getElementById(id);
   const panel = $('live-panel'), select = $('tournament-select');
   const reload = $('load-tournaments'), refresh = $('refresh-matches');
@@ -11,9 +13,11 @@ export function createLiveDashboard(auth, api) {
     refresh.disabled = !enabled || busy || !select.value;
   }
   function clearMatches() {
+    rooms.select(null);
     cards.replaceChildren(); updated.textContent = ''; bracket.hidden = true; bracket.removeAttribute('href');
   }
   function reset() {
+    rooms.reset();
     generation++; controller?.abort(); enabled = false; busy = false; panel.hidden = true;
     select.replaceChildren(new Option('Load tournaments to begin', ''));
     clearMatches(); status.textContent = 'Load tournaments to begin.'; controls();
@@ -58,18 +62,19 @@ export function createLiveDashboard(auth, api) {
   reload.addEventListener('click', () => run(async current => {
     clearMatches();
     select.replaceChildren(new Option('Loading…', ''));
-    status.textContent = 'Loading in-progress FSC Fall brackets…';
+    status.textContent = 'Loading in-progress FSC brackets…';
     const data = await read('/tournaments');
     if (current !== generation) return;
     if (!Array.isArray(data.tournaments)) throw new Error('Unexpected tournament response.');
     select.replaceChildren(new Option('Select a tournament', ''));
-    for (const t of data.tournaments) select.add(new Option(t.name, t.id));
+    for (const t of data.tournaments) select.add(new Option(t.name + (t.isTest ? ' [TEST — no Elo]' : ''), t.id));
     if (data.tournaments.length === 1) select.value = data.tournaments[0].id;
     status.textContent = data.tournaments.length
       ? 'Select a tournament, then refresh matches.'
-      : 'No in-progress FSC Fall brackets found. Start the tournament on Challonge, then reload this list.';
+      : 'No in-progress FSC brackets found. Start the tournament on Challonge, then reload this list.';
   }));
   select.addEventListener('change', () => {
+    rooms.select(null);
     clearMatches(); status.textContent = 'Refresh to load matches for the selected tournament.'; controls();
   });
   refresh.addEventListener('click', () => run(async current => {
@@ -78,6 +83,7 @@ export function createLiveDashboard(auth, api) {
     const data = await read('/matches?tournament=' + encodeURIComponent(id));
     if (current !== generation || id !== select.value) return;
     if (!Array.isArray(data.matches) || data.tournament?.id !== id) throw new Error('Unexpected match response.');
+    rooms.select(data.tournament);
     for (const match of data.matches) {
       const card = document.createElement('article'); card.className = 'match-card';
       const heading = document.createElement('h3');
@@ -88,7 +94,7 @@ export function createLiveDashboard(auth, api) {
         (match.state === 'underway' ? 'In progress' : 'Ready to play');
       const ids = document.createElement('p'); ids.className = 'section-note';
       ids.textContent = 'Challonge match ID: ' + match.id;
-      card.append(heading, detail, ids); cards.append(card);
+      card.append(heading, detail, ids); rooms.addCreate(card, data.tournament, match); cards.append(card);
     }
     status.textContent = data.matches.length ? data.matches.length + ' open matches loaded.'
       : 'No playable matches are currently open. Check Challonge, then refresh after scores are entered.';
@@ -99,5 +105,6 @@ export function createLiveDashboard(auth, api) {
     }
   }));
   reset();
-  return { reset, enable() { enabled = true; panel.hidden = false; controls(); } };
+  return { reset, enable() { rooms.enable(); enabled = true; panel.hidden = false; controls(); } };
 }
+
