@@ -7,6 +7,7 @@ from datetime import datetime
 
 SEEDS = ('3gee2mio', 'ezus0cc3', 'knpl9s22', 'yt30nf6m')
 PREFIX = 'FSC Fall Bracket'
+ADDITIONAL_BRACKETS = {'v3fgwg53'}
 MAX_DOCUMENT_BYTES = 750_000
 K_FACTOR = 64
 
@@ -51,7 +52,7 @@ def select(events, excluded_ids=(), excluded_slugs=()):
             if seed:
                 raise ValueError('A seed tournament is marked as excluded/test; review configuration')
             continue
-        if not seed and not t['name'].startswith(PREFIX):
+        if not seed and not t['name'].startswith(PREFIX) and t['url'] not in ADDITIONAL_BRACKETS:
             continue
         date = started(t)
         if not seed and instant(date) <= cutoff:

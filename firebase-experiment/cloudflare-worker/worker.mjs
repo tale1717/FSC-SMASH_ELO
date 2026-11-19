@@ -138,7 +138,7 @@ export async function collection(path, kind, key, fetcher, signal, filters = {})
 async function activeTournaments(key, fetcher, signal, env = {}) {
   const rows = await collection('tournaments', 'tournament', key, fetcher, signal, { state: 'underway' });
   return rows.filter(({ attributes: a }) =>
-    typeof a.name === 'string' && (a.name.startsWith('FSC Fall Bracket') || a.name === 'FSC Test Bracket') &&
+    typeof a.name === 'string' && (a.name.startsWith('FSC Fall Bracket') || a.name === 'FSC Test Bracket' || a.url === 'v3fgwg53') &&
     a.game_name === 'Super Smash Bros. Ultimate' && !a.teams && !a.group_stage_enabled &&
     (!a.state || a.state === 'underway')
   ).map(({ id, attributes: a }) => ({

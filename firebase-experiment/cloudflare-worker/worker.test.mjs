@@ -241,3 +241,15 @@ test('live points_by_participant IDs resolve open sets without player relationsh
   oversized.attributes.points_by_participant.push({participant_id:309445509});
   assert.equal(openMatches([oversized],people).unresolved,1);
 });
+
+test('explicit new bracket appears despite its different title',async()=>{
+ const fetcher=async(url,options)=>{
+  if(url.includes('identitytoolkit'))return Response.json({users:[{localId:'owner'}]});
+  const u=new URL(url);
+  if(u.searchParams.get('page')!=='1')return Response.json({data:[]});
+  const a={...event.attributes,name:'FSC 2025 Bracket #6',url:'v3fgwg53',state:'underway'};
+  return Response.json({data:[{...event,attributes:a},{...event,id:'124',attributes:{...a,url:'other'}},{...event,id:'125',attributes:{...a,state:'complete'}}]});
+ };
+ const r=await handle(liveRequest('/tournaments'),liveEnv,fetcher);
+ assert.equal(r.status,200);assert.deepEqual((await r.json()).tournaments.map(t=>t.id),['123']);
+});

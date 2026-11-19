@@ -38,6 +38,15 @@ class EngineTests(unittest.TestCase):
         source=self.source();source['event']['name']='FSC Test Bracket'
         with self.assertRaises(ValueError): build([source],{})
 
+    def test_explicit_real_bracket(self):
+        events = self.events()
+        bracket = dict(events[-1], id=99, url='v3fgwg53', name='FSC 2025 Bracket #6',
+                       started_at='2026-11-19T00:00:00Z')
+        self.assertEqual(select(events+[bracket])[-1]['id'], '99')
+        self.assertEqual(len(select(events+[dict(bracket,state='underway')])), 4)
+        self.assertEqual(len(select(events+[bracket], excluded_slugs={'v3fgwg53'})), 4)
+        self.assertEqual(len(select(events+[dict(bracket,url='unrelated')])), 4)
+
     def test_selection(self):
         events=self.events()
         for i,(name,state,game,date) in enumerate([
