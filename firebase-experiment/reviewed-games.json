@@ -1,0 +1,986 @@
+{
+  "slug": "v3fgwg53",
+  "sets": [
+    {
+      "players": [
+        "Alucard",
+        "Frostmeiser"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Kazuya",
+            "Duck Hunt"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Kazuya",
+            "Duck Hunt"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "SMT",
+        "Big Ant"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Mario",
+            "Yoshi"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Final Destination",
+          "characters": [
+            "Mario",
+            "Yoshi"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Never",
+        "Ethanmagoo"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Dr. Mario"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Dr. Mario"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Dr. Mario"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Never",
+        "Photaru"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Byleth"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Wario",
+            "Byleth"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Pupusa",
+        "Lavolon"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Inkling",
+            "Diddy Kong"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Town and City",
+          "characters": [
+            "Inkling",
+            "Diddy Kong"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Thomas",
+        "No?"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Cloud",
+            "Pit"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Town and City",
+          "characters": [
+            "King Dedede",
+            "Dark Pit"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Tanuki",
+        "Ethanmagoo"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Dr. Mario"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Dr. Mario"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "Tanuki",
+        "Photaru"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Byleth"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Town and City",
+          "characters": [
+            "Joker",
+            "Byleth"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Smashville",
+          "characters": [
+            "Joker",
+            "Corrin"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Zander",
+        "Big Ant"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Battlefield",
+          "characters": [
+            "Sora",
+            "Yoshi"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Sora",
+            "Yoshi"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Tal_Dave",
+        "Thomas"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Town and City",
+          "characters": [
+            "Ike",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Town and City",
+          "characters": [
+            "Ike",
+            "Cloud"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "Ethanmagoo",
+        "Alucard"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Battlefield",
+          "characters": [
+            "Dr. Mario",
+            "Kazuya"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Dr. Mario",
+            "Palutena"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Final Destination",
+          "characters": [
+            "Dr. Mario",
+            "Palutena"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "SMT",
+        "MVQ"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "King K. Rool",
+            "Isabelle"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Town and City",
+          "characters": [
+            "King K. Rool",
+            "Isabelle"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Tanuki",
+        "Lavolon"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Diddy Kong"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Diddy Kong"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Joker",
+            "Diddy Kong"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Never",
+        "Thomas"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 4,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 5,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Cloud"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "No?",
+        "CoveredinRice"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Battlefield",
+          "characters": [
+            "Dark Pit",
+            "Sheik"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Dark Pit",
+            "Sheik"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Dark Pit",
+            "Sheik"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "Alucard",
+        "Zander"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Battlefield",
+          "characters": [
+            "Palutena",
+            "Sora"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Palutena",
+            "Sora"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Zander",
+        "Tal_Dave"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Sora",
+            "Ike"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Sora",
+            "Ike"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Sora",
+            "Ike"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Alucard",
+        "ItsChris457"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Kazuya",
+            "Ridley"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Kazuya",
+            "Ridley"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "MVQ",
+        "CoveredinRice"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Unknown",
+          "characters": [
+            "Isabelle",
+            "Sheik"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Unknown",
+          "characters": [
+            "Isabelle",
+            "Sheik"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "MVQ",
+        "Tanuki"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Isabelle",
+            "Joker"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Isabelle",
+            "Joker"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "SMT",
+        "Pupusa"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Mario",
+            "Inkling"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Battlefield",
+          "characters": [
+            "Mario",
+            "Inkling"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Inkling"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 4,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Mario",
+            "Inkling"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Never",
+        "MVQ"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Isabelle"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Isabelle"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Town and City",
+          "characters": [
+            "Bowser",
+            "Isabelle"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Thomas",
+        "SMT"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Cloud",
+            "Mario"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Cloud",
+            "Mario"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Cloud",
+            "Mario"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Alucard",
+        "Pupusa"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Kazuya",
+            "Bayonetta"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Final Destination",
+          "characters": [
+            "Kazuya",
+            "Inkling"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Kazuya",
+            "Inkling"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 4,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Palutena",
+            "Inkling"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "Alucard",
+        "Never"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Kazuya",
+            "Bowser"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Kalos Pok\u00e9mon League",
+          "characters": [
+            "Kazuya",
+            "Bowser"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Battlefield",
+          "characters": [
+            "Kazuya",
+            "Bowser"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 4,
+          "stage": "Battlefield",
+          "characters": [
+            "Palutena",
+            "Bowser"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "Never",
+        "SMT"
+      ],
+      "occurrence": 1,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Pok\u00e9mon Stadium 2",
+          "characters": [
+            "Bowser",
+            "Mario"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Battlefield",
+          "characters": [
+            "Bowser",
+            "Mario"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Bowser",
+            "Mario"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 4,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Bowser",
+            "Mario"
+          ],
+          "winner": 1
+        }
+      ]
+    },
+    {
+      "players": [
+        "SMT",
+        "Thomas"
+      ],
+      "occurrence": 2,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 2,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 3,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 4,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 5,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        }
+      ]
+    },
+    {
+      "players": [
+        "SMT",
+        "Thomas"
+      ],
+      "occurrence": 3,
+      "games": [
+        {
+          "number": 1,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 2,
+          "stage": "Small Battlefield",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        },
+        {
+          "number": 3,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 4,
+          "stage": "Smashville",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 1
+        },
+        {
+          "number": 5,
+          "stage": "Hollow Bastion",
+          "characters": [
+            "Mario",
+            "Cloud"
+          ],
+          "winner": 0
+        }
+      ]
+    }
+  ]
+}
