@@ -1,9 +1,9 @@
-import { $, text, readDashboard, playerUrl, eventDate } from './common.js';
+import { $, text, readDashboard, playerUrl, eventDate, withReviewedHistory } from './common.js';
 import { reportFor } from './game-records.js';
 async function load() {
   const params = new URLSearchParams(location.search);
   try {
-    const data = await readDashboard();
+    const data = withReviewedHistory(await readDashboard());
     if (!data) { $('status').textContent = 'No tournaments have been imported yet.'; return; }
     const match = data.matches.find(m => m.tournament === params.get('tournament') && m.id === params.get('match'));
     if (!match) { $('status').textContent = 'Set not found. Return to the rankings to choose a set.'; return; }
@@ -16,7 +16,7 @@ async function load() {
     $('set-event').textContent = event ? `${event.name} · ${eventDate(event.started)}` : 'Tournament';
     $('set-title').textContent = `${name(match.winner)} vs ${name(match.loser)}`;
     document.title = `${$('set-title').textContent} · FSC Smash Elo`;
-    $('set-score').textContent = `${name(match.winner)} wins ${match.winnerScore}–${match.loserScore} · Official set result`;
+    $('set-score').textContent = `${name(match.winner)} wins ${match.winnerScore}–${match.loserScore} · ${match.reviewedOnly ? "Organizer-confirmed result · Elo pending" : "Official set result"}`;
     for (const id of ids) { const a = text('a', `${name(id)}’s profile`); a.href = playerUrl(id); $('set-player-links').append(a); }
     if (event?.slug && /^[a-zA-Z0-9_-]+$/.test(event.slug)) {
       $('set-bracket').href = `https://challonge.com/${encodeURIComponent(event.slug)}`; $('set-bracket').hidden = false;
@@ -38,3 +38,4 @@ async function load() {
   } catch { $('status').textContent = 'Set details could not load. Check your connection and refresh.'; }
 }
 load();
+

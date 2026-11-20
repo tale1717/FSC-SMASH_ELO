@@ -148,7 +148,41 @@ const fixture = {
     assert.match(await page.locator('#game-status').textContent(),/unavailable/);
     await page.goto(origin+'/set.html?tournament=wrong&match=4');
     await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Set not found'));
+
+    fixture.reviewedHistory = {
+      schema:1,
+      players:[{id:'new',name:'New player',historyOnly:true,elo:null,wins:0,losses:0,tournamentCount:null}],
+      tournaments:[{id:'manual:test',slug:'manual-test',name:'FSC Fall Bracket #6',started:null,reviewedOnly:true,sets:1}],
+      matches:[{id:'manual:1',tournament:'manual:test',winner:'new',loser:'p0',winnerScore:2,loserScore:0,change:null,reviewedOnly:true,occurrence:1}],
+      gameReports:[{tournament:'manual:test',match:'manual:1',status:'confirmed',games:[1,2].map(number=>({number,stage:'Unknown',winner:'new',characters:{new:'Isabelle',p0:'Sheik'}}))}]
+    };
+    await page.goto(origin); await page.waitForSelector('#rankings tr');
+    assert.equal(await page.locator('#players-count').textContent(),'12');
+    await page.getByRole('link',{name:'View reviewed sets',exact:true}).click();
+    await page.getByRole('link',{name:'View games',exact:true}).click();
+    await page.waitForSelector('#set-content:visible');
+    assert.match(await page.locator('#set-score').textContent(),/Elo pending/);
+    assert.equal(await page.locator('#set-games article').count(),2);
+    await page.goto(origin+'/player.html?id=new');
+    await page.waitForSelector('#player-content:visible');
+    assert.equal(await page.locator('#player-elo').textContent(),'Pending');
+    assert.match(await page.locator('#event-history').textContent(),/Elo pending/);
+    await page.getByRole('tab',{name:'Stats',exact:true}).click();
+    assert.match(await page.locator('#stage-rows').textContent(),/Unknown/);
+    assert.match(await page.locator('#character-rows').textContent(),/Sheik/);
+    await page.goto(origin+'/player.html?id=p0'); await page.waitForSelector('#player-content:visible');
+    assert.equal(await page.locator('#player-elo').textContent(),'1400');
+    assert.match(await page.locator('#event-history .event-block').first().textContent(),/Bracket #6/);
+    const deduped = await page.evaluate(async () => {
+      const {withReviewedHistory} = await import('./common.js');
+      const data = {players:[],matches:[],gameReports:[],tournaments:[{id:'real',slug:'x'}],
+        reviewedHistory:{schema:1,players:[],matches:[{tournament:'manual:x'}],gameReports:[],tournaments:[{id:'manual:x',slug:'x'}]}};
+      return withReviewedHistory(data).matches.length;
+    });
+    assert.equal(deduped,0);
+
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('PASS: all 39 icons; double-digit alignment; desktop/mobile geometry; navigation; numerical tournament order; H2H totals, matchups, tabs, reload and empty profiles.');
   } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
+

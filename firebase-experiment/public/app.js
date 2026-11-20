@@ -73,6 +73,11 @@ async function load() {
     $('events-count').textContent = data.tournaments.length;
     $('sets-count').textContent = data.matches.length;
     dashboard = data;
+    if (data.reviewedHistory?.matches?.length) {
+      const notice = text('p', 'Bracket #6 reviewed game records are available. Elo remains pending full bracket import. ');
+      const link = text('a', 'View reviewed sets'); link.href = 'reviewed.html'; notice.append(link);
+      $('status').after(notice);
+    }
     renderRankings();
     $('official-rankings').disabled = false; $('all-rankings').disabled = false;
     $('official-rankings').addEventListener('click', () => { official = true; renderRankings(); });
@@ -99,3 +104,4 @@ async function load() {
   }
 }
 load();
+

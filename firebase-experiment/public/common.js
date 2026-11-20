@@ -7,7 +7,7 @@ export function text(tag, value) {
   return element;
 }
 export const signed = value => `${value >= 0 ? '+' : '−'}${Math.abs(value)}`;
-export const eventDate = value => new Date(value).toLocaleDateString('en-US', {
+export const eventDate = value => !value ? 'Date not recorded' : new Date(value).toLocaleDateString('en-US', {
   month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York'
 });
 export const playerUrl = id => `player.html?id=${encodeURIComponent(id)}`;
@@ -63,4 +63,22 @@ export function readDashboard() {
     return data;
   })();
   return dashboardPromise;
+}
+
+
+// Add confirmed manual history only to history/statistics views, never rankings.
+export function withReviewedHistory(data) {
+  const extra = data?.reviewedHistory;
+  if (!extra || extra.schema !== 1) return data;
+  const imported = new Set(data.tournaments.map(t => t.slug));
+  const events = extra.tournaments.filter(t => !imported.has(t.slug));
+  const ids = new Set(events.map(t => t.id));
+  const matches = extra.matches.filter(m => ids.has(m.tournament));
+  const needed = new Set(matches.flatMap(m => [m.winner, m.loser]));
+  const existing = new Set(data.players.map(p => p.id));
+  return {...data,
+    players: [...data.players, ...extra.players.filter(p => needed.has(p.id) && !existing.has(p.id))],
+    tournaments: [...data.tournaments, ...events], matches: [...data.matches, ...matches],
+    gameReports: [...(data.gameReports || []), ...extra.gameReports.filter(r => ids.has(r.tournament))]
+  };
 }

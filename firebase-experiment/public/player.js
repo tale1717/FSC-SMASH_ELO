@@ -1,7 +1,7 @@
 import { rankedPlayers, isQualified, tournamentCount } from './eligibility.js';
 import { renderStats } from './player-stats.js';
 import { setUrl, playerGames } from './game-records.js';
-import { $, text, signed, eventDate, characterIcon, orderedTournaments, headToHead, readDashboard } from './common.js';
+import { $, text, signed, eventDate, characterIcon, orderedTournaments, headToHead, readDashboard, withReviewedHistory } from './common.js';
 
 const tabs = ['history', 'h2h', 'stats'];
 const hashPanel = () => tabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'history';
@@ -33,7 +33,7 @@ function eventBlock(event, matches, player, players, open = false, showOpponent 
   const summary = document.createElement('summary'), heading = document.createElement('span');
   heading.className = 'event-heading'; heading.append(text('strong', event.name), text('small', eventDate(event.started)));
   const totals = document.createElement('span'); totals.className = 'event-totals';
-  totals.append(text('span', `${wins}–${matches.length - wins}`), text('span', `${signed(delta)} Elo`));
+  totals.append(text('span', `${wins}–${matches.length - wins}`), text('span', event.reviewedOnly ? 'Elo pending' : `${signed(delta)} Elo`));
   summary.append(heading, totals); details.append(summary);
   const wrap = document.createElement('div'); wrap.className = 'scroll';
   const table = document.createElement('table'); table.className = 'history-table';
@@ -48,7 +48,7 @@ function eventBlock(event, matches, player, players, open = false, showOpponent 
     const result = text('td', won ? 'Win' : 'Loss'); result.className = won ? 'set-win' : 'set-loss'; row.append(result);
     if (showOpponent) row.append(text('td', players.get(won ? match.loser : match.winner)?.name || 'Unknown player'));
     row.append(text('td', won ? `${match.winnerScore}–${match.loserScore}` : `${match.loserScore}–${match.winnerScore}`),
-      text('td', signed(won ? match.change : -match.change)));
+      text('td', match.reviewedOnly ? 'Pending' : signed(won ? match.change : -match.change)));
     const cell = document.createElement('td'), link = text('a', 'View games');
     link.href = setUrl(match, player.id); cell.append(link); row.append(cell);
     body.append(row);
@@ -61,14 +61,14 @@ async function load() {
   const id = new URLSearchParams(location.search).get('id');
   if (!id) { $('status').textContent = 'Choose a player from the rankings to view their records.'; return; }
   try {
-    const data = await readDashboard();
+    const data = withReviewedHistory(await readDashboard());
     if (!data) { $('status').textContent = 'No tournaments have been imported yet.'; return; }
     const player = data.players.find(person => person.id === id);
     if (!player) { $('status').textContent = 'Player not found. Their tag may have been merged or changed. Return to rankings to find their current profile.'; return; }
     const players = new Map(data.players.map(person => [person.id, person]));
     const matches = data.matches.filter(match => match.winner === id || match.loser === id);
     const events = orderedTournaments(data.tournaments).reverse()
-      .sort((a, b) => (Date.parse(b.started) || 0) - (Date.parse(a.started) || 0))
+      .sort((a, b) => Number(Boolean(b.reviewedOnly)) - Number(Boolean(a.reviewedOnly)) || (Date.parse(b.started) || 0) - (Date.parse(a.started) || 0))
       .filter(event => matches.some(match => match.tournament === event.id));
     document.title = `${player.name} · FSC Smash Elo`;
     $('player-name').textContent = player.name;
@@ -78,8 +78,9 @@ async function load() {
     $('player-rank').textContent = isQualified(player) ? `Official rank #${officialRank} · All-player rank #${allRank} · Fall season` :
       `Not officially ranked · All-player rank #${allRank} · ${attendance === null ? 'Attendance awaiting import' : `${attendance}/4 tournaments`}`;
     const icon = characterIcon(player.name, 'profile-icon'); if (icon) $('player-icon').append(icon);
-    $('player-elo').textContent = player.elo;
-    $('player-record').textContent = `${player.wins}–${player.losses}`;
+    if (player.historyOnly) $('player-rank').textContent = 'Reviewed history only · Elo and attendance pending full bracket import';
+    $('player-elo').textContent = player.historyOnly ? 'Pending' : player.elo;
+    $('player-record').textContent = player.historyOnly ? 'Pending' : `${player.wins}–${player.losses}`;
     $('player-events').textContent = attendance === null ? '—' : attendance;
     events.forEach((event, index) => $('event-history').append(eventBlock(event,
       matches.filter(match => match.tournament === event.id), player, players, index === 0)));
@@ -119,9 +120,10 @@ async function load() {
     $('close-rival').addEventListener('click', () => { $('rival-details').hidden = true; selectedButton?.focus(); });
     selectPanel(hashPanel(), false);
     $('player-content').hidden = false;
-    $('status').textContent = `Last published: ${new Date(data.updatedAt).toLocaleString()}`;
+    $('status').textContent = `Rankings last published: ${new Date(data.updatedAt).toLocaleString()}` + (matches.some(m => m.reviewedOnly) ? ' · Bracket #6 reviewed games are included below; its Elo, season record and attendance updates are pending.' : '');
   } catch {
     $('status').textContent = 'Player records could not load. Check your connection and refresh, or return to rankings.';
   }
 }
 load();
+
