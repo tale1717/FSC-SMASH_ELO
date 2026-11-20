@@ -4,9 +4,9 @@ on:
     inputs:
       mode:
         type: choice
-        options: [preview, publish]
+        options: [preview, publish, archive]
         default: preview
-        description: Preview tournament selection or publish ratings
+        description: Preview, publish ratings, or archive reviewed notes without Challonge
       refresh:
         type: boolean
         default: false
@@ -44,15 +44,15 @@ jobs:
           mode=os.environ.get('INPUT_MODE') or request['mode']
           refresh=os.environ.get('INPUT_REFRESH')
           refresh=(refresh=='true') if refresh else request.get('refresh',False)
-          if mode not in ('preview','publish'): raise SystemExit('Invalid mode')
+          if mode not in ('preview','publish','archive'): raise SystemExit('Invalid mode')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:
               out.write('mode='+mode+'\n')
               out.write('refresh='+str(bool(refresh)).lower()+'\n')
           PY
       - run: python -m unittest discover -s firebase-experiment/tests -v
-      - if: steps.operation.outputs.mode == 'publish'
+      - if: steps.operation.outputs.mode != 'preview'
         run: pip install -r firebase-experiment/requirements.txt
-      - if: steps.operation.outputs.mode == 'publish'
+      - if: steps.operation.outputs.mode != 'preview'
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -67,8 +67,8 @@ jobs:
         run: |
           python - <<'PY'
           import os,subprocess,sys
-          args=[sys.executable,'firebase-experiment/importer.py']
+          args=[sys.executable,'firebase-experiment/archive_reviewed.py' if os.environ['IMPORT_MODE']=='archive' else 'firebase-experiment/importer.py']
           if os.environ['IMPORT_MODE']=='publish': args.append('--publish')
-          if os.environ['IMPORT_REFRESH']=='true': args.append('--refresh')
+          if os.environ['IMPORT_MODE']!='archive' and os.environ['IMPORT_REFRESH']=='true': args.append('--refresh')
           subprocess.run(args,check=True)
           PY
