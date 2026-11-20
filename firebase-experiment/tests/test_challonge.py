@@ -111,6 +111,7 @@ class ApiTests(unittest.TestCase):
         event = dict(id='1', started='2026-10-01T12:00:00Z', slug='synthetic-bracket', name='FSC Fall Bracket Synthetic')
         with patch.dict('os.environ', {'CHALLONGE_API_KEY': 'key'}), patch.object(sys, 'argv', ['importer.py']), \
              patch('importer.select', return_value=[event]), patch('challonge.tournaments', return_value=[]), \
+             patch('game_reports.resolve_reviewed', return_value=[]), \
              patch('challonge.participants', return_value=[{'id': 1, 'name': 'A'}, {'id': 2, 'name': 'B'}]), \
              patch('challonge.matches', return_value=[challonge.match_record(match())]), \
              patch.dict(sys.modules, {'google.cloud': None}), patch('sys.stdout', new_callable=io.StringIO) as output:
