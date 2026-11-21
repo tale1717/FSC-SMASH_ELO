@@ -18,7 +18,7 @@ class EngineTests(unittest.TestCase):
         sources=[]
         for i in range(4):
             source=copy.deepcopy(self.source())
-            source['event'].update(id=str(i+1),started=f'2026-10-{10+i}T19:30:00-04:00')
+            source['event'].update(id=str(i+1),slug=f'synthetic-{i+1}',started=f'2026-10-{10+i}T19:30:00-04:00')
             source['participants']=['A','Alt','B','Registered']
             source['matches'].append(dict(source['matches'][0],id='11'))
             sources.append(source)
@@ -83,7 +83,7 @@ class EngineTests(unittest.TestCase):
     def test_full_replay_uses_updated_opponent_ratings(self):
         first=self.source()
         second=copy.deepcopy(first)
-        second['event'].update(id='2',started='2026-10-11T19:30:00-04:00')
+        second['event'].update(id='2',slug='synthetic-2',started='2026-10-11T19:30:00-04:00')
         second['matches'][0].update(winner='B',loser='A',winnerScore=3,loserScore=0)
         result=build([second,first],{})
         self.assertEqual([m['change'] for m in result['matches']],[32,38])
