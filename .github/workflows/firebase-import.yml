@@ -4,7 +4,7 @@ on:
     inputs:
       mode:
         type: choice
-        options: [preview, publish, archive, reviewed, finalize]
+        options: [preview, publish, archive, reviewed, finalize, date]
         default: preview
         description: Preview, publish ratings, or archive reviewed notes without Challonge
       refresh:
@@ -44,7 +44,7 @@ jobs:
           mode=os.environ.get('INPUT_MODE') or request['mode']
           refresh=os.environ.get('INPUT_REFRESH')
           refresh=(refresh=='true') if refresh else request.get('refresh',False)
-          if mode not in ('preview','publish','archive','reviewed','finalize'): raise SystemExit('Invalid mode')
+          if mode not in ('preview','publish','archive','reviewed','finalize','date'): raise SystemExit('Invalid mode')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:
               out.write('mode='+mode+'\n')
               out.write('refresh='+str(bool(refresh)).lower()+'\n')
@@ -67,7 +67,7 @@ jobs:
         run: |
           python - <<'PY'
           import os,subprocess,sys
-          args=[sys.executable,{'finalize':'firebase-experiment/finalize_bracket.py','archive':'firebase-experiment/archive_reviewed.py','reviewed':'firebase-experiment/publish_reviewed.py'}.get(os.environ['IMPORT_MODE'], 'firebase-experiment/importer.py')]
+          args=[sys.executable,{'date':'firebase-experiment/update_bracket_date.py','finalize':'firebase-experiment/finalize_bracket.py','archive':'firebase-experiment/archive_reviewed.py','reviewed':'firebase-experiment/publish_reviewed.py'}.get(os.environ['IMPORT_MODE'], 'firebase-experiment/importer.py')]
           if os.environ['IMPORT_MODE']=='publish': args.append('--publish')
           if os.environ['IMPORT_MODE'] in ('preview','publish') and os.environ['IMPORT_REFRESH']=='true': args.append('--refresh')
           subprocess.run(args,check=True)

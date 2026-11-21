@@ -3,9 +3,10 @@
     "id": "manual:v3fgwg53",
     "slug": "v3fgwg53",
     "name": "FSC Fall Bracket #6",
-    "started": null,
+    "started": "2026-11-18T00:00:00-05:00",
     "afterSlug": "n7qul9qt",
-    "provenance": "Organizer-confirmed bracket screenshots; numbered set order"
+    "provenance": "Organizer-confirmed bracket screenshots; numbered set order",
+    "datePrecision": "day"
   },
   "participants": [
     "Alucard",
