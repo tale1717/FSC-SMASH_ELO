@@ -1,0 +1,296 @@
+{
+  "event": {
+    "id": "manual:v3fgwg53",
+    "slug": "v3fgwg53",
+    "name": "FSC Fall Bracket #6",
+    "started": null,
+    "afterSlug": "n7qul9qt",
+    "provenance": "Organizer-confirmed bracket screenshots; numbered set order"
+  },
+  "participants": [
+    "Alucard",
+    "Big Ant",
+    "CoveredinRice",
+    "Ethanmagoo",
+    "Frostmeiser",
+    "ItsChris457",
+    "Lavolon",
+    "MVQ",
+    "Never",
+    "No?",
+    "Photaru",
+    "Pupusa",
+    "SMT",
+    "Tal_Dave",
+    "Tanuki",
+    "Thomas",
+    "Zander"
+  ],
+  "matches": [
+    {
+      "id": "manual:v3fgwg53:1",
+      "order": 1,
+      "winner": "No?",
+      "loser": "Frostmeiser",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:2",
+      "order": 2,
+      "winner": "Tal_Dave",
+      "loser": "CoveredinRice",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:3",
+      "order": 3,
+      "winner": "Never",
+      "loser": "Photaru",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:4",
+      "order": 4,
+      "winner": "Ethanmagoo",
+      "loser": "Tanuki",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:5",
+      "order": 5,
+      "winner": "SMT",
+      "loser": "Big Ant",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:6",
+      "order": 6,
+      "winner": "MVQ",
+      "loser": "Zander",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:7",
+      "order": 7,
+      "winner": "Pupusa",
+      "loser": "ItsChris457",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:8",
+      "order": 8,
+      "winner": "Lavolon",
+      "loser": "Alucard",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:9",
+      "order": 9,
+      "winner": "Thomas",
+      "loser": "No?",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:10",
+      "order": 10,
+      "winner": "Alucard",
+      "loser": "Frostmeiser",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:11",
+      "order": 11,
+      "winner": "Tanuki",
+      "loser": "Photaru",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:12",
+      "order": 12,
+      "winner": "Zander",
+      "loser": "Big Ant",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:13",
+      "order": 13,
+      "winner": "CoveredinRice",
+      "loser": "No?",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:14",
+      "order": 14,
+      "winner": "Alucard",
+      "loser": "ItsChris457",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:15",
+      "order": 15,
+      "winner": "Never",
+      "loser": "Ethanmagoo",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:16",
+      "order": 16,
+      "winner": "SMT",
+      "loser": "MVQ",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:17",
+      "order": 17,
+      "winner": "Pupusa",
+      "loser": "Lavolon",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:18",
+      "order": 18,
+      "winner": "Thomas",
+      "loser": "Tal_Dave",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:19",
+      "order": 19,
+      "winner": "Alucard",
+      "loser": "Ethanmagoo",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:20",
+      "order": 20,
+      "winner": "MVQ",
+      "loser": "CoveredinRice",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:21",
+      "order": 21,
+      "winner": "Tanuki",
+      "loser": "Lavolon",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:22",
+      "order": 22,
+      "winner": "Zander",
+      "loser": "Tal_Dave",
+      "winnerScore": 2,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:23",
+      "order": 23,
+      "winner": "MVQ",
+      "loser": "Tanuki",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:24",
+      "order": 24,
+      "winner": "Alucard",
+      "loser": "Zander",
+      "winnerScore": 2,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:25",
+      "order": 25,
+      "winner": "SMT",
+      "loser": "Pupusa",
+      "winnerScore": 3,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:26",
+      "order": 26,
+      "winner": "Thomas",
+      "loser": "Never",
+      "winnerScore": 3,
+      "loserScore": 2
+    },
+    {
+      "id": "manual:v3fgwg53:27",
+      "order": 27,
+      "winner": "Alucard",
+      "loser": "Pupusa",
+      "winnerScore": 3,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:28",
+      "order": 28,
+      "winner": "Never",
+      "loser": "MVQ",
+      "winnerScore": 3,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:29",
+      "order": 29,
+      "winner": "Never",
+      "loser": "Alucard",
+      "winnerScore": 3,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:30",
+      "order": 30,
+      "winner": "Thomas",
+      "loser": "SMT",
+      "winnerScore": 3,
+      "loserScore": 0
+    },
+    {
+      "id": "manual:v3fgwg53:31",
+      "order": 31,
+      "winner": "SMT",
+      "loser": "Never",
+      "winnerScore": 3,
+      "loserScore": 1
+    },
+    {
+      "id": "manual:v3fgwg53:32",
+      "order": 32,
+      "winner": "SMT",
+      "loser": "Thomas",
+      "winnerScore": 3,
+      "loserScore": 2
+    },
+    {
+      "id": "manual:v3fgwg53:33",
+      "order": 33,
+      "winner": "SMT",
+      "loser": "Thomas",
+      "winnerScore": 3,
+      "loserScore": 2
+    }
+  ],
+  "skipped": 0
+}

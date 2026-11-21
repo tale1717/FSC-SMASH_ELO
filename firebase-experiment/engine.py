@@ -4,6 +4,7 @@ import json
 import math
 import re
 from datetime import datetime
+from manual_sources import order_sources
 
 SEEDS = ('3gee2mio', 'ezus0cc3', 'knpl9s22', 'yt30nf6m')
 PREFIX = 'FSC Fall Bracket'
@@ -143,7 +144,7 @@ def build(sources, aliases):
             players[pid] = dict(id=pid, name=name, elo=1000, wins=0, losses=0)
             appearances[pid] = set()
         return players[pid]
-    ordered = sorted(sources, key=lambda s: (instant(s['event']['started']), int(s['event']['id'])))
+    ordered = order_sources(sources, instant)
     for source in ordered:
         event = source['event']
         if is_test_event(event):
@@ -177,4 +178,5 @@ def build(sources, aliases):
                   tournaments=events, matches=history)
     validate_size(result)
     return result
+
 

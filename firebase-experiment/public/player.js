@@ -68,7 +68,7 @@ async function load() {
     const players = new Map(data.players.map(person => [person.id, person]));
     const matches = data.matches.filter(match => match.winner === id || match.loser === id);
     const events = orderedTournaments(data.tournaments).reverse()
-      .sort((a, b) => Number(Boolean(b.reviewedOnly)) - Number(Boolean(a.reviewedOnly)) || (Date.parse(b.started) || 0) - (Date.parse(a.started) || 0))
+      .sort((a, b) => (a.afterSlug || b.afterSlug) ? data.tournaments.indexOf(b) - data.tournaments.indexOf(a) : Number(Boolean(b.reviewedOnly)) - Number(Boolean(a.reviewedOnly)) || (Date.parse(b.started) || 0) - (Date.parse(a.started) || 0))
       .filter(event => matches.some(match => match.tournament === event.id));
     document.title = `${player.name} · FSC Smash Elo`;
     $('player-name').textContent = player.name;
@@ -126,4 +126,5 @@ async function load() {
   }
 }
 load();
+
 

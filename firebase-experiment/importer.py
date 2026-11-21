@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from engine import select, normalize, build, validate_size
 from game_reports import load_reports
+from manual_sources import include_manual
 
 PROJECT = 'fsc-smash-elo'
 
@@ -27,7 +28,7 @@ def main():
         sources = [normalize(event, challonge.participants(event['id'], key),
                              challonge.matches(event['id'], key)) for event in events]
         aliases = json.loads(Path(__file__).with_name('aliases.json').read_text())
-        dashboard = load_reports(build(sources, aliases))
+        dashboard = load_reports(build(include_manual(sources), aliases))
         print(f"Preview: {len(events)} tournaments, {len(dashboard['players'])} players, {len(dashboard['matches'])} sets.")
         print('Preview finished. No Firestore connection or database writes.')
         return
@@ -55,7 +56,7 @@ def main():
         if cache.get(eid) != source:
             updates[eid] = source
     aliases = json.loads(Path(__file__).with_name('aliases.json').read_text())
-    dashboard = load_reports(build(sources, aliases))
+    dashboard = load_reports(build(include_manual(sources), aliases))
     if old.exists and all(old.to_dict().get(k) == v for k, v in dashboard.items()) and not updates:
         print('Already current. No rating changes or writes.')
         return
@@ -110,4 +111,5 @@ if __name__ == '__main__':
                 if marker in message:
                     print(description, file=sys.stderr)
         sys.exit(1)
+
 
