@@ -39,7 +39,7 @@ export function createEditor(auth,api) {
     const m=source.matches.find(m=>m.id===context.matchId);if(!m)return;
     const names=context.room.state.match.players.map(p=>p.name);
     const token=await auth.currentUser.getIdToken();
-    const response=await fetch(api+'/rooms/'+context.room.id,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action:'organizer-result',revision:context.room.revision,scores:names.map(n=>n===m.winner?m.winnerScore:m.loserScore),note}),signal:AbortSignal.timeout(15000)});
+    const response=await fetch(api+'/rooms/'+context.room.id,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action:'organizer-result',revision:context.room.revision,scores:names.map(n=>n===m.winner?m.winnerScore:m.loserScore),records:(draft.matches.find(x=>x.id===context.matchId)?.games||[]).map((g,i)=>({game:i+1,stage:g.stage||'Unknown',characters:[g.a||'Unknown',g.b||'Unknown'],winner:g.winner})),note}),signal:AbortSignal.timeout(15000)});
     const body=await response.json();if(!response.ok)throw Error(body.error||'Room closure failed.');
     window.dispatchEvent(new CustomEvent('organizer-room-closed',{detail:context.room.id}));
   }

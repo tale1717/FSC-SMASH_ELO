@@ -82,3 +82,11 @@ test('codes persist for organizers but never leak to players or lobby; unchanged
  assert.equal((await f.send('/play/'+a.room.id+'?since=0',null,'abcdef')).status,401);
  }finally{f.sqlite.close()}
 });
+test('organizer can record an unreported result and it disappears after approval',async()=>{
+ const f=fixture();try{const a=await f.create();const url='/rooms/'+a.room.id;
+ assert.equal((await f.send(url,{action:'organizer-result',revision:0,scores:[2,0],note:'TO notes'},a.codes[0])).status,401);
+ assert.equal((await f.send(url,{action:'organizer-result',revision:0,scores:[2,0],note:'TO notes',records:[{game:1,stage:'Unknown',characters:['Unknown','Unknown'],winner:0}]})).status,400);
+ const r=await f.send(url,{action:'organizer-result',revision:0,scores:[2,0],note:'TO notes',records:[]});assert.equal(r.status,200);assert.equal((await r.json()).state.phase,'approved');
+ assert.equal((await(await f.send('/rooms')).json()).rooms.length,0);assert.equal((await(await f.send('/lobby')).json()).rooms.length,0);
+ }finally{f.sqlite.close()}
+});

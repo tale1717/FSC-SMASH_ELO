@@ -149,6 +149,8 @@ const fixture = {
     await page.goto(origin+'/set.html?tournament=wrong&match=4');
     await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Set not found'));
 
+    // Simulate publication arriving after the cached snapshot expires.
+    await page.evaluate(()=>sessionStorage.removeItem('fsc-dashboard-v1'));
     fixture.reviewedHistory = {
       schema:1,
       players:[{id:'new',name:'New player',historyOnly:true,elo:null,wins:0,losses:0,tournamentCount:null}],

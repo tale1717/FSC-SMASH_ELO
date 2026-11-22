@@ -324,7 +324,9 @@ async function organizerRooms(request,env,fetcher,uid,reply){
       requireRoom(state.phase!=='approved','This room is already approved.');
       const scores=input.scores;requireRoom(Array.isArray(scores)&&scores.length===2&&scores.every(n=>Number.isInteger(n)&&n>=0)&&Math.max(...scores)===Math.ceil(state.bestOf/2)&&Math.min(...scores)<Math.max(...scores),'Enter a valid final score.',400);
       requireRoom(typeof input.note==='string'&&input.note.trim(),'Add a correction note.',400);
-      state.wins=scores;state.phase='approved';state.approvedBy=uid;state.approvedAt=new Date().toISOString();state.organizerNote=input.note.slice(0,500);state.confirmed=[false,false];
+      const records=input.records||[];requireRoom(Array.isArray(records)&&records.length<=5,'Invalid game records.',400);
+      if(records.length){const wins=[0,0];requireRoom(records.length===scores[0]+scores[1],'Game count disagrees with score.',400);for(const [i,g] of records.entries()){requireRoom(g.game===i+1&&[0,1].includes(g.winner)&&typeof g.stage==='string'&&g.stage.length<=100&&Array.isArray(g.characters)&&g.characters.length===2&&g.characters.every(c=>typeof c==='string'&&c.length<=100),'Invalid game details.',400);wins[g.winner]++;requireRoom(i===records.length-1||Math.max(...wins)<Math.ceil(state.bestOf/2),'Games continue after the set ended.',400)}requireRoom(wins.every((n,i)=>n===scores[i]),'Game winners disagree with score.',400)}
+      state.records=records;state.wins=scores;state.phase='approved';state.approvedBy=uid;state.approvedAt=new Date().toISOString();state.organizerNote=input.note.slice(0,500);state.confirmed=[false,false];
     }else if(input.action==='approve'){
       requireRoom(state.phase==='pending'&&state.confirmed.every(Boolean),'Both players must confirm first.');state.phase='approved';state.approvedBy=uid;state.approvedAt=new Date().toISOString();
     }else if(input.action==='correct'){

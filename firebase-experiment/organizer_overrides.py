@@ -22,6 +22,8 @@ def apply_overrides(dashboard, overrides, aliases, original_sources=None):
         old_id = prior['event']['id'] if prior else source['event']['id']
         reports = [r for r in reports if r['tournament'] not in (old_id,source['event']['id'])]
         reports.extend(source.get('reports', []))
+        if prior:
+            source = dict(source, participants=list(dict.fromkeys([*prior['participants'], *source['participants']])))
         sources[slug] = source
     for slug, source in list(sources.items()):
         event = {k:v for k,v in source['event'].items() if k not in ('sets','skipped')}
