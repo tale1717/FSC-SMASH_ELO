@@ -1,9 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function owner() {
+      return request.auth != null && request.auth.uid == '76XXWSwa4FgMRHAp01Aa13qrfLn1'
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function editor() {
+      return owner() || (request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && exists(/databases/$(database)/documents/organizerAccess/$(request.auth.uid))
+        && get(/databases/$(database)/documents/organizerAccess/$(request.auth.uid)).data.enabled == true);
+    }
     match /public/dashboard {
       allow get: if true;
-      allow list, write: if false;
+      allow update: if editor() && request.resource.data.schema == 1
+        && request.resource.data.players is list && request.resource.data.matches is list
+        && request.resource.data.tournaments is list && request.resource.data.revision is string;
+      allow list, create, delete: if false;
+    }
+    match /organizerOverrides/{slug} {
+      allow read: if editor();
+      allow create, update: if editor() && request.resource.data.source.event.slug == slug
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+    match /organizerBackups/{revision} {
+      allow read, create: if editor();
+      allow update, delete: if false;
+    }
+    match /organizerAudit/{revision} {
+      allow read: if editor();
+      allow create: if editor() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+    match /organizerAccess/{uid} {
+      allow read, write: if owner();
     }
     match /{document=**} {
       allow read, write: if false;

@@ -2,7 +2,7 @@ function finalizedTournament(t){return t?.slug==='v3fgwg53'||t?.url==='v3fgwg53'
 const API='https://fsc-smash-elo-api.dstalero71.workers.dev';
 const $=id=>document.getElementById(id),id=new URL(location.href).searchParams.get('room');
 const validId=/^[a-z0-9-]{36}$/.test(id||'');
-let code='',view=null,busy=false,timer=null,generation=0;
+let code='',view=null,busy=false,timer=null,generation=0,polling=false,idlePolls=0,pollErrors=0;
 const selected=new Set();
 const storageKey='fsc-room:'+id;
 try{code=sessionStorage.getItem(storageKey)||''}catch{}
@@ -11,18 +11,18 @@ function button(label,handler,disabled=false){const b=text('button',label);b.typ
 function select(options,current=''){const s=document.createElement('select');s.append(new Option('Choose…',''));for(const v of options)s.add(new Option(v,v));s.value=current;return s;}
 function art(stage,check=false){const span=document.createElement('span');span.className='space';const img=document.createElement('img');img.className='stage-image';img.alt=stage.name;img.src=stage.image;span.append(img);if(check){const tick=document.createElement('span');tick.className='stage-check';tick.setAttribute('aria-hidden','true');span.append(tick)}return span;}
 async function request(action){
-  const response=await fetch(API+'/play/'+id,{method:action?'POST':'GET',headers:{Authorization:'Bearer '+code,...(action?{'Content-Type':'application/json'}:{})},...(action?{body:JSON.stringify({...action,revision:view.revision})}:{}),signal:AbortSignal.timeout(15000)});
+  const response=await fetch(API+'/play/'+id+(!action&&view?'?since='+view.revision:''),{method:action?'POST':'GET',headers:{Authorization:'Bearer '+code,...(action?{'Content-Type':'application/json'}:{})},...(action?{body:JSON.stringify({...action,revision:view.revision})}:{}),signal:AbortSignal.timeout(15000)});
   const data=await response.json();if(data.state&&finalizedTournament(data.state.tournament)){const e=new Error('This tournament is finalized. View its published results.');e.status=410;throw e}if(!response.ok){const e=new Error(data.error||'Could not load this match.');e.status=response.status;throw e}return data;
 }
-function apply(data){if(view&&view.revision>=data.revision&&view.actor===data.actor)return;view=data;selected.clear();render();}
+function apply(data){if(data.unchanged){idlePolls++;return}idlePolls=0;if(view&&view.revision>=data.revision&&view.actor===data.actor)return;view=data;selected.clear();render();}
 async function action(input){
   if(busy||!view)return;const current=generation;busy=true;render();
   try{const data=await request(input);if(current!==generation)return;apply(data);$('connection').textContent='Saved. Waiting for the other player when needed.'}
   catch(e){if(current!==generation)return;$('connection').textContent=e.message;try{const data=await request();if(current===generation)apply(data)}catch{}}
   finally{if(current===generation){busy=false;render();schedule()}}
 }
-function schedule(){clearTimeout(timer);if(code&&view?.state.phase!=='approved')timer=setTimeout(poll,5000)}
-async function poll(){if(busy||document.hidden){schedule();return}const current=generation;try{const data=await request();if(current!==generation)return;apply(data);$('connection').textContent='Connected · Changes sync automatically.'}catch(e){if(current!==generation)return;$('connection').textContent=e.message;if([401,403,410].includes(e.status)){leave(false);return}}schedule();}
+function schedule(){clearTimeout(timer);if(code&&!document.hidden&&view?.state.phase!=='approved')timer=setTimeout(poll,Math.min(60000,pollErrors?10000*2**pollErrors:view?.state.phase==='pending'?30000:10000+idlePolls*2000))}
+async function poll(){if(busy||polling||document.hidden){schedule();return}polling=true;const current=generation;try{const data=await request();if(current!==generation)return;apply(data);pollErrors=0;$('connection').textContent='Connected · Changes sync automatically.'}catch(e){if(current!==generation)return;pollErrors=Math.min(3,pollErrors+1);$('connection').textContent=e.message;if([401,403,410].includes(e.status)){leave(false);return}}finally{polling=false}schedule();}
 function leave(clear=true){generation++;clearTimeout(timer);code='';view=null;busy=false;selected.clear();try{sessionStorage.removeItem(storageKey)}catch{}$('join-form').hidden=false;for(const x of ['player-identity','score','controls','st-selection','st-ready','game-history'])$(x).hidden=true;if(clear)$('connection').textContent='Signed out of this match on this device.';}
 $('leave-room').addEventListener('click',()=>leave());
 $('join-form').addEventListener('submit',async e=>{e.preventDefault();if(busy||!validId)return;busy=true;code=$('player-code').value.trim().toUpperCase();$('connection').textContent='Joining…';try{view=await request();if(!view.state.joined[view.actor])view=await request({action:'join'});try{sessionStorage.setItem(storageKey,code)}catch{}$('player-code').value='';$('connection').textContent='Connected.';render();schedule()}catch(error){leave(false);$('connection').textContent=error.message}finally{busy=false;if(view)render()}});
@@ -72,7 +72,7 @@ function renderStages(){
   $('stage-progress').textContent=selected.size+' of '+quota+' selected';$('stage-submit').disabled=busy||!mine||selected.size!==quota;$('stage-submit').textContent=picking?'Confirm stage':'Confirm strikes';
 }
 $('stage-submit').addEventListener('click',()=>action({action:'stages',stages:[...selected]}));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&code&&!busy)poll()});
+document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden&&code&&!busy)poll()});
 let lobbyBusy=false;
 async function loadLobby(){
   if(lobbyBusy)return;lobbyBusy=true;$('reload-rooms').disabled=true;$('lobby-status').textContent='Loading available rooms…';
@@ -96,4 +96,5 @@ async function loadLobby(){
 $('reload-rooms').addEventListener('click',loadLobby);
 if(!validId){$('join-form').hidden=true;$('room-picker').hidden=false;$('match-title').textContent='Choose your match';loadLobby();}
 else{$('back-to-rooms').hidden=false;if(code)poll();}
+
 

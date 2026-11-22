@@ -47,21 +47,29 @@ export function headToHead(matches, playerId) {
 }
 
 let dashboardPromise;
-export function readDashboard() {
+const DASHBOARD_CACHE = 'fsc-dashboard-v1';
+export function cacheDashboard(data) {
+  dashboardPromise=Promise.resolve(data);
+  try { sessionStorage.setItem(DASHBOARD_CACHE,JSON.stringify({saved:Date.now(),data})); } catch {}
+}
+export function readDashboard(force=false) {
+  if(force){dashboardPromise=null;try{sessionStorage.removeItem(DASHBOARD_CACHE)}catch{}}
+  if(!dashboardPromise&&!force){try{const cached=JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE));if(cached&&Date.now()-cached.saved<60000&&cached.data?.schema===1)dashboardPromise=Promise.resolve(cached.data)}catch{}}
   dashboardPromise ||= (async () => {
     // Catch missing configuration in the page's loading handler.
-    const [{ initializeApp }, { getFirestore, doc, getDoc }, { firebaseConfig }] = await Promise.all([
+    const [{ initializeApp, getApps, getApp }, { getFirestore, doc, getDoc }, { firebaseConfig }] = await Promise.all([
       import('https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js'),
       import('https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js'),
       import('./firebase-config.js')
     ]);
-    const snapshot = await getDoc(doc(getFirestore(initializeApp(firebaseConfig)), 'public', 'dashboard'));
+    const snapshot = await getDoc(doc(getFirestore(getApps().length?getApp():initializeApp(firebaseConfig)), 'public', 'dashboard'));
     if (!snapshot.exists()) return null;
     const data = snapshot.data();
     if (data.schema !== 1 || !Array.isArray(data.players) ||
         !Array.isArray(data.matches) || !Array.isArray(data.tournaments)) throw new Error('Invalid snapshot');
+    cacheDashboard(data);
     return data;
-  })();
+  })().catch(error=>{dashboardPromise=null;throw error});
   return dashboardPromise;
 }
 
@@ -82,3 +90,4 @@ export function withReviewedHistory(data) {
     gameReports: [...(data.gameReports || []), ...extra.gameReports.filter(r => ids.has(r.tournament))]
   };
 }
+

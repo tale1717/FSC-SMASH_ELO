@@ -10,6 +10,7 @@ from pathlib import Path
 from engine import select, normalize, build, validate_size
 from game_reports import load_reports
 from manual_sources import include_manual
+from organizer_overrides import apply_overrides
 
 PROJECT = 'fsc-smash-elo'
 
@@ -57,6 +58,8 @@ def main():
             updates[eid] = source
     aliases = json.loads(Path(__file__).with_name('aliases.json').read_text())
     dashboard = load_reports(build(include_manual(sources), aliases))
+    overrides = [doc.to_dict() for doc in db.collection('organizerOverrides').stream()]
+    dashboard = apply_overrides(dashboard, overrides, aliases, include_manual(sources))
     if old.exists and all(old.to_dict().get(k) == v for k, v in dashboard.items()) and not updates:
         print('Already current. No rating changes or writes.')
         return
@@ -111,5 +114,6 @@ if __name__ == '__main__':
                 if marker in message:
                     print(description, file=sys.stderr)
         sys.exit(1)
+
 
 

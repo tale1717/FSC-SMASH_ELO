@@ -78,7 +78,17 @@ export default { fetch(request, env) { return handle(request, env); } };
 class ChallongeError extends Error {
   constructor(message, status = 502) { super(message); this.status = status; }
 }
+const collectionCaches = new WeakMap();
 export async function collection(path, kind, key, fetcher, signal, filters = {}) {
+  let cache=collectionCaches.get(fetcher);if(!cache){cache=new Map();collectionCaches.set(fetcher,cache)}
+  const cacheKey=JSON.stringify([path,key,filters]);const existing=cache.get(cacheKey);
+  if(existing&&existing.until>Date.now())return structuredClone(await existing.value);
+  const ttl=path.endsWith('/participants')?300000:path.endsWith('/matches')?10000:60000;
+  const entry={until:Date.now()+ttl,value:fetchCollection(path,kind,key,fetcher,signal,filters)};
+  if(cache.size>=100)cache.delete(cache.keys().next().value);cache.set(cacheKey,entry);
+  try{return structuredClone(await entry.value)}catch(e){if(cache.get(cacheKey)===entry)cache.delete(cacheKey);throw e}
+}
+async function fetchCollection(path, kind, key, fetcher, signal, filters = {}) {
   if (!/^tournaments(?:\/\d+\/(?:participants|matches))?$/.test(path)) throw new ChallongeError('Invalid endpoint', 400);
   const rows = [], seen = new Set();
   for (let page = 1; page <= 12; page++) {
@@ -133,6 +143,7 @@ export async function collection(path, kind, key, fetcher, signal, filters = {})
       }
       seen.add(id); rows.push({ ...row, id });
     }
+    if(payload.links && payload.links.next === null)return rows;
   }
   throw new ChallongeError('Challonge pagination limit reached. No partial list was loaded.');
 }
@@ -287,7 +298,8 @@ export function reduceRoom(original,actor,input,random=()=>crypto.getRandomValue
   }
   throw new RoomError('Unknown player action.');
 }
-function publicRoom(row,actor=null){const state=JSON.parse(row.state);return {id:row.id,revision:row.revision,expiresAt:row.expires_at,actor,state,stages:STAGES,characters:CHARACTERS};}
+function publicRoom(row,actor=null){const state=JSON.parse(row.state);delete state._codes;return {id:row.id,revision:row.revision,expiresAt:row.expires_at,actor,state,stages:STAGES,characters:CHARACTERS};}
+function organizerRoom(row){const result=publicRoom(row);result.codes=JSON.parse(row.state)._codes||[null,null];return result;}
 async function getRoom(db,id){requireRoom(/^[a-z0-9-]{36}$/.test(id),'Room not found.',404);const row=await db.prepare('SELECT * FROM match_rooms WHERE id = ?').bind(id).first();requireRoom(row,'Room not found.',404);return row;}
 async function saveRoom(db,row,state){
   const result=await db.prepare('UPDATE match_rooms SET state = ?, revision = revision + 1 WHERE id = ? AND revision = ?').bind(JSON.stringify(state),row.id,row.revision).run();
@@ -297,7 +309,7 @@ async function playerRoom(request,env,id,reply){
   const db=database(env),row=await getRoom(db,id);requireRoom(!finalizedTournament(JSON.parse(row.state).tournament),'This tournament is finalized. View its published results.',410);requireRoom(Date.now()<row.expires_at,'This room expired. Contact the TO.',410);
   const code=(request.headers.get('Authorization')||'').replace(/^Bearer /,'');requireRoom(/^(?:[0-9]{6}|[a-f0-9]{24})$/i.test(code),'Enter your private player code.',401);
   const hash=await codeHash(id,code),actor=hash===row.code_a?0:hash===row.code_b?1:null;requireRoom(actor!==null,'Incorrect player code.',403);
-  if(request.method==='GET')return reply(200,publicRoom(row,actor));
+  if(request.method==='GET'){if(new URL(request.url).searchParams.get('since')===String(row.revision))return reply(200,{unchanged:true,revision:row.revision});return reply(200,publicRoom(row,actor));}
   requireRoom(request.method==='POST','Method not allowed.',405);const body=await roomBody(request);requireRoom(body.revision===row.revision,'The match changed. Refresh before acting.');
   return reply(200,publicRoom(await saveRoom(db,row,reduceRoom(JSON.parse(row.state),actor,body)),actor));
 }
@@ -305,10 +317,15 @@ async function organizerRooms(request,env,fetcher,uid,reply){
   const db=database(env),url=new URL(request.url),parts=url.pathname.split('/');
   if(parts[2]){
     const row=await getRoom(db,parts[2]);
-    if(request.method==='GET')return reply(200,publicRoom(row));
+    if(request.method==='GET')return reply(200,organizerRoom(row));
     requireRoom(!finalizedTournament(JSON.parse(row.state).tournament),'This tournament is finalized. Its rooms are archived.',410);
     const input=await roomBody(request);requireRoom(input.revision===row.revision,'The room changed. Refresh before acting.');const state=JSON.parse(row.state);
-    if(input.action==='approve'){
+    if(input.action==='organizer-result'){
+      requireRoom(state.phase!=='approved','This room is already approved.');
+      const scores=input.scores;requireRoom(Array.isArray(scores)&&scores.length===2&&scores.every(n=>Number.isInteger(n)&&n>=0)&&Math.max(...scores)===Math.ceil(state.bestOf/2)&&Math.min(...scores)<Math.max(...scores),'Enter a valid final score.',400);
+      requireRoom(typeof input.note==='string'&&input.note.trim(),'Add a correction note.',400);
+      state.wins=scores;state.phase='approved';state.approvedBy=uid;state.approvedAt=new Date().toISOString();state.organizerNote=input.note.slice(0,500);state.confirmed=[false,false];
+    }else if(input.action==='approve'){
       requireRoom(state.phase==='pending'&&state.confirmed.every(Boolean),'Both players must confirm first.');state.phase='approved';state.approvedBy=uid;state.approvedAt=new Date().toISOString();
     }else if(input.action==='correct'){
       requireRoom(['review','pending'].includes(state.phase),'Only unapproved final results can be corrected.');const last=state.records.pop();requireRoom(last,'No completed game to correct.');
@@ -316,15 +333,17 @@ async function organizerRooms(request,env,fetcher,uid,reply){
     }else if(input.action==='reissue'){
       requireRoom(input.player===0||input.player===1,'Choose a player.',400);requireRoom(!['approved'].includes(state.phase),'This set is already approved.');const code=await distinctCode(row.id,row.code_a,row.code_b),hash=await codeHash(row.id,code);
       const column=input.player===0?'code_a':'code_b';
-      const updated=await db.prepare('UPDATE match_rooms SET '+column+' = ?, revision = revision + 1, expires_at = ? WHERE id = ? AND revision = ?').bind(hash,Date.now()+48*3600000,row.id,row.revision).run();
+      state._codes||=[null,null];state._codes[input.player]=code;
+      const updated=await db.prepare('UPDATE match_rooms SET '+column+' = ?, state = ?, revision = revision + 1, expires_at = ? WHERE id = ? AND revision = ?').bind(hash,JSON.stringify(state),Date.now()+48*3600000,row.id,row.revision).run();
       requireRoom(updated.meta.changes===1,'Room changed; retry.');return reply(200,{code,player:input.player});
     }else throw new RoomError('Unknown organizer action.');
     return reply(200,publicRoom(await saveRoom(db,row,state)));
   }
   if(request.method==='GET'){
-    const tournament=url.searchParams.get('tournament');requireRoom(/^\d+$/.test(tournament||''),'Choose a tournament.',400);
-    const rows=await db.prepare('SELECT * FROM match_rooms WHERE tournament_id = ? ORDER BY created_at DESC LIMIT 300').bind(tournament).all();
-    return reply(200,{rooms:rows.results.filter(r=>r.expires_at>Date.now()&&JSON.parse(r.state).phase!=='approved'&&!finalizedTournament(JSON.parse(r.state).tournament)).map(r=>publicRoom(r))});
+    const tournament=url.searchParams.get('tournament');
+    requireRoom(!tournament||/^[a-zA-Z0-9:-]+$/.test(tournament),'Invalid tournament.',400);
+    const rows=await db.prepare(tournament?'SELECT * FROM match_rooms WHERE tournament_id = ? ORDER BY created_at DESC LIMIT 300':'SELECT * FROM match_rooms WHERE expires_at > ? ORDER BY created_at DESC LIMIT 300').bind(tournament||Date.now()).all();
+    return reply(200,{rooms:rows.results.filter(r=>r.expires_at>Date.now()&&JSON.parse(r.state).phase!=='approved'&&!finalizedTournament(JSON.parse(r.state).tournament)).map(r=>organizerRoom(r))});
   }
   const input=await roomBody(request);requireRoom(/^\d+$/.test(input.tournament||'')&&/^\d+$/.test(input.match||'')&&[3,5].includes(input.bestOf),'Choose a match and best-of 3 or 5.',400);
   const key=(env.CHALLONGE_API_KEY||'').trim();requireRoom(key&&!/[^\x21-\x7e]/.test(key),'Configure the Challonge API key.',503);
@@ -335,9 +354,11 @@ async function organizerRooms(request,env,fetcher,uid,reply){
   const match=openMatches(matches,people).matches.find(m=>m.id===input.match);requireRoom(match,'This set is no longer open. Refresh the list.');
   const id=crypto.randomUUID(),first=newCode(),firstHash=await codeHash(id,first);
   const codes=[first,await distinctCode(id,firstHash)],hashes=await Promise.all(codes.map(c=>codeHash(id,c))),state=initialRoom(event,match,input.bestOf),now=Date.now();
+  state._codes=codes;
   const inserted=await db.prepare('INSERT OR IGNORE INTO match_rooms (id,tournament_id,match_id,code_a,code_b,state,revision,created_at,expires_at) VALUES (?,?,?,?,?,?,0,?,?)').bind(id,event.id,match.id,...hashes,JSON.stringify(state),now,now+48*3600000).run();
   requireRoom(inserted.meta.changes===1,'A room already exists for this set. Refresh rooms; reissue codes there if necessary.');
-  return reply(201,{room:{id,revision:0,state},codes});
+  return reply(201,{room:publicRoom({id,revision:0,state:JSON.stringify(state),expires_at:now+48*3600000}),codes});
 }
+
 
 

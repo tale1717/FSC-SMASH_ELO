@@ -39,7 +39,7 @@ test('real SQL: code auth, independent rooms, revision collisions and code rotat
  const rotated=await (await f.send('/rooms/'+a.room.id,{action:'reissue',revision:latest.revision,player:0})).json();
  assert.equal((await f.send(url,null,a.codes[0])).status,403);assert.equal((await f.send(url,null,rotated.code)).status,200);
  assert.equal((await f.send('/rooms/'+a.room.id,{action:'approve',revision:latest.revision+1})).status,409);
- const list=await (await f.send('/rooms?tournament=123')).json();assert.equal(list.rooms.length,2);assert(!JSON.stringify(list).includes(rotated.code));
+ const list=await (await f.send('/rooms?tournament=123')).json();assert.equal(list.rooms.length,2);assert.equal(list.rooms.find(r=>r.id===a.room.id).codes[0],rotated.code);
  f.sqlite.prepare('UPDATE match_rooms SET expires_at = 0 WHERE id = ?').run(a.room.id);assert.equal((await f.send(url,null,rotated.code)).status,410);
  }finally{f.sqlite.close()}
 });
@@ -72,5 +72,13 @@ test('public lobby exposes only room summaries and six-digit codes stay private'
   state.phase='approved';f.sqlite.prepare('UPDATE match_rooms SET state=? WHERE id=?').run(JSON.stringify(state),a.room.id);
   f.sqlite.prepare('UPDATE match_rooms SET expires_at=0 WHERE id=?').run(b.room.id);
   assert.equal((await(await f.send('/lobby',null,'')).json()).rooms.length,0);
+ }finally{f.sqlite.close()}
+});
+
+test('codes persist for organizers but never leak to players or lobby; unchanged polls are small',async()=>{
+ const f=fixture();try{const a=await f.create();const list=await(await f.send('/rooms')).json();assert.deepEqual(list.rooms[0].codes,a.codes);
+ for(const path of ['/lobby','/play/'+a.room.id]){const body=await(await f.send(path,null,a.codes[0])).json();assert(!JSON.stringify(body).includes(a.codes[1]));assert.equal(body.state?._codes,undefined)}
+ const unchanged=await(await f.send('/play/'+a.room.id+'?since=0',null,a.codes[0])).json();assert.deepEqual(unchanged,{unchanged:true,revision:0});
+ assert.equal((await f.send('/play/'+a.room.id+'?since=0',null,'abcdef')).status,401);
  }finally{f.sqlite.close()}
 });

@@ -32,8 +32,10 @@ jobs:
 
       - run: node firebase-experiment/tests/match-demo.cjs
 
-      - run: node --test firebase-experiment/cloudflare-worker/worker.test.mjs firebase-experiment/cloudflare-worker/rooms.test.mjs
+      - run: node --test firebase-experiment/tests/editor.test.mjs firebase-experiment/cloudflare-worker/worker.test.mjs firebase-experiment/cloudflare-worker/rooms.test.mjs
       - run: node firebase-experiment/tests/organizer.cjs
 
 
       - run: node firebase-experiment/tests/live-rooms.cjs
+
+      - run: node firebase-experiment/tests/editor-browser.cjs

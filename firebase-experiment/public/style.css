@@ -99,3 +99,13 @@ select{display:block;padding:10px;margin-top:6px;max-width:100%;font:inherit;bac
 .attendance-cell .qualified{color:#d4e9bd}
 #rankings-table th:last-child,#rankings-table td:last-child{text-align:right}
 @media(max-width:520px){.ranking-switch{gap:8px}.ranking-switch button{flex:1;padding:10px;font-size:14px}#rankings-table{font-size:12px}#rankings-table td,#rankings-table th{padding-left:4px;padding-right:4px}#rankings-table th{font-size:10px;letter-spacing:0} .attendance-cell small{font-size:11px}}
+
+
+.room-players,.editor-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:1rem 0;}
+.room-players label,.editor-fields label {display:flex;flex-direction:column;gap:.4rem;font-size:1rem;}
+.room-players input {font-size:1.3rem;letter-spacing:.12em;max-width:100%;box-sizing:border-box;}
+.editor-fields input,.editor-fields select {width:100%;min-width:0;box-sizing:border-box;}
+#results-editor summary {cursor:pointer;font-size:1.1rem;padding:.5rem 0;}
+#results-editor button {margin:.5rem .5rem .5rem 0;}
+#results-editor fieldset {border:1px solid #41634e;border-radius:.5rem;}
+#results-editor table {margin:1rem 0;}

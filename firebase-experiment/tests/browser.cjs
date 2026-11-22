@@ -46,7 +46,7 @@ const fixture = {
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/firebase-config.js', route => route.fulfill({contentType:'text/javascript',body:'export const firebaseConfig = {};'}));
   await page.route('https://www.gstatic.com/**', route => route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body:
-    route.request().url().includes('firebase-app.js') ? 'export const initializeApp = () => ({});' :
+    route.request().url().includes('firebase-app.js') ? 'export const initializeApp = () => ({}); export const getApps=()=>[]; export const getApp=()=>({});' :
     `export const getFirestore=()=>({}); export const doc=()=>({}); export const getDoc=async()=>({exists:()=>true,data:()=>(${JSON.stringify(fixture)})});`
   }));
   try {
@@ -185,4 +185,5 @@ const fixture = {
     console.log('PASS: all 39 icons; double-digit alignment; desktop/mobile geometry; navigation; numerical tournament order; H2H totals, matchups, tabs, reload and empty profiles.');
   } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
 

@@ -22,7 +22,7 @@ def include_manual(sources):
 
 def order_sources(sources, instant):
     normal = [s for s in sources if not s['event'].get('afterSlug')]
-    ordered = sorted(normal, key=lambda s: (instant(s['event']['started']), int(s['event']['id'])))
+    ordered = sorted(normal, key=lambda s: (instant(s['event']['started']), (0, int(s['event']['id'])) if s['event']['id'].isdigit() else (1, s['event']['id'])))
     pending = [s for s in sources if s['event'].get('afterSlug')]
     while pending:
         for source in pending:
@@ -36,3 +36,4 @@ def order_sources(sources, instant):
     if len({s['event']['slug'] for s in ordered}) != len(ordered):
         raise ValueError('Duplicate tournament slug')
     return ordered
+
