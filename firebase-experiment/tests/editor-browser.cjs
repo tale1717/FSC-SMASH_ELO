@@ -24,6 +24,7 @@ const path=require('node:path');
   await page.goto('https://fsc-smash-elo.web.app/organizer.html');
   await page.getByText('Owner access confirmed.',{exact:true}).waitFor();
   await page.getByRole('button',{name:'Load / refresh saved results'}).click();
+  await page.getByText('Saved results loaded. Select a tournament or create one.',{exact:true}).waitFor();
   await page.getByLabel('Edit saved tournament',{exact:true}).selectOption('1');
   await page.getByLabel('Player 1 wins',{exact:true}).fill('0');await page.getByLabel('Player 2 wins',{exact:true}).fill('2');
   await page.getByRole('button',{name:'Preview Elo and results'}).click();

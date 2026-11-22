@@ -9,7 +9,7 @@ export function createEditor(auth,api) {
   const toolbar=document.createElement('div');toolbar.className='organizer-actions';
   const form=document.createElement('div'),preview=document.createElement('div');panel.append(toolbar,status,form,preview);
   let enabled=false,base=null,draft=null,pending=null,busy=false,epoch=0,roomContext=null;
-  const label=(name,input)=>{const l=text('label',name);l.append(input);return l};
+  const label=(name,input)=>{const l=text('label',name);input.setAttribute('aria-label',name);l.append(input);return l};
   function input(value='',type='text'){const i=document.createElement('input');i.type=type;i.value=value;return i}
   function select(options,value){const s=document.createElement('select');for(const [v,t] of options)s.add(new Option(t,v));s.value=value;return s}
   function button(title,action){const b=text('button',title);b.type='button';b.addEventListener('click',()=>run(action));return b}
