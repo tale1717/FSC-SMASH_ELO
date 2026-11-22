@@ -35,3 +35,11 @@ export function aggregateGames(games, key) {
 export function setUrl(match, playerId) {
   return `set.html?tournament=${encodeURIComponent(match.tournament)}&match=${encodeURIComponent(match.id)}&player=${encodeURIComponent(playerId)}`;
 }
+
+
+export function coverage(data, matches=data.matches) {
+  const reports=matches.map(m=>reportFor(data,m)).filter(Boolean),games=reports.flatMap(r=>r.games);
+  const known=value=>typeof value==='string'&&value.trim()&&!/^unknown$/i.test(value.trim());
+  return {sets:matches.length,covered:reports.length,games:games.length,stages:games.filter(g=>known(g.stage)).length,characters:games.filter(g=>Object.values(g.characters).every(known)).length};
+}
+export function coverageLabel(data,matches=data.matches){const c=coverage(data,matches);return `Game records: ${c.covered} / ${c.sets} sets · Known stages: ${c.stages} / ${c.games} recorded games · Both characters known: ${c.characters} / ${c.games}`;}

@@ -46,15 +46,15 @@ export function headToHead(matches, playerId) {
   return records;
 }
 
-let dashboardPromise;
+let dashboardPromise, checkedAt;
 const DASHBOARD_CACHE = 'fsc-dashboard-v1';
 export function cacheDashboard(data) {
-  dashboardPromise=Promise.resolve(data);
+  checkedAt=Date.now();dashboardPromise=Promise.resolve(data);
   try { sessionStorage.setItem(DASHBOARD_CACHE,JSON.stringify({saved:Date.now(),data})); } catch {}
 }
 export function readDashboard(force=false) {
   if(force){dashboardPromise=null;try{sessionStorage.removeItem(DASHBOARD_CACHE)}catch{}}
-  if(!dashboardPromise&&!force){try{const cached=JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE));if(cached&&Date.now()-cached.saved<60000&&cached.data?.schema===1)dashboardPromise=Promise.resolve(cached.data)}catch{}}
+  if(!dashboardPromise&&!force){try{const cached=JSON.parse(sessionStorage.getItem(DASHBOARD_CACHE));if(cached&&Date.now()-cached.saved<60000&&cached.data?.schema===1){checkedAt=cached.saved;dashboardPromise=Promise.resolve(cached.data)}}catch{}}
   dashboardPromise ||= (async () => {
     // Catch missing configuration in the page's loading handler.
     const [{ initializeApp, getApps, getApp }, { getFirestore, doc, getDoc }, { firebaseConfig }] = await Promise.all([
@@ -70,7 +70,7 @@ export function readDashboard(force=false) {
     cacheDashboard(data);
     return data;
   })().catch(error=>{dashboardPromise=null;throw error});
-  return dashboardPromise;
+  return dashboardPromise.then(data=>{snapshotControls(data);return data});
 }
 
 
@@ -91,3 +91,12 @@ export function withReviewedHistory(data) {
   };
 }
 
+
+function snapshotControls(data){
+  const status=document.getElementById('status');if(!status||document.getElementById('snapshot-controls')||!data)return;
+  const controls=document.createElement('div');controls.id='snapshot-controls';
+  const info=text('p','Last checked: '+new Date(checkedAt||Date.now()).toLocaleString()+' · Saved data is reused across pages for up to one minute.');
+  const button=text('button','Refresh saved data');button.type='button';
+  button.addEventListener('click',async()=>{button.disabled=true;try{await readDashboard(true);location.reload()}catch{info.textContent='Could not refresh. Your displayed results are unchanged.';button.disabled=false}});
+  controls.append(info,button);status.after(controls);
+}

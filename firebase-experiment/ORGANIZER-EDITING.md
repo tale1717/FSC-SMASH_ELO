@@ -23,3 +23,13 @@ Requests: public ranking data is cached in session storage for 60 seconds across
 The owner can preview and undo the latest organizer publication. Undo records are saved with publications made after this update. Older backups without complete importer-state records are not offered for automatic undo. Each undo saves the replaced results, restores or removes the affected importer override, and rejects concurrent publication changes. Undo does not reopen player rooms. Deploy the updated Firestore rules as well as Hosting; no Worker changes are needed for these safeguards.
 
 New or reassigned sets between the same two players in a tournament trigger a warning at preview. Review the flagged scores and explicitly confirm that they are separate sets before publishing a rematch or grand-final reset. Existing, unchanged rematches do not prompt again. Duplicate match IDs remain invalid. Detection uses the loaded snapshot and makes no API requests.
+
+### Saved drafts, archive, and coverage
+
+Use **Save draft across devices** to save a private draft for your organizer UID. On another device, sign in with the same account and choose **Load my cloud drafts**, then open one. These are explicit Firestore reads/writes, not automatic saves. Concurrent device saves are rejected until you load the newer draft. If published results changed, review the tournament and acknowledge replacement in the preview before publishing.
+
+**Archived rooms** loads Cloudflare D1 records only when opened. Approved, expired, and finalized rooms are read-only, with no player codes. Search filters loaded pages; use **Load more archived rooms** for older records. This does not call Challonge or recreate rooms previously deleted.
+
+Coverage labels distinguish recorded sets, known stages, and games with both characters known. They use the already-loaded snapshot. **Refresh saved data** checks Firebase once and reloads the view using its cached snapshot. Normal navigation reuses that snapshot for one minute.
+
+Deploy Hosting and Firestore rules and update Cloudflare from `cloudflare-worker/worker.mjs`. No new database migration or Challonge request is required for these features.

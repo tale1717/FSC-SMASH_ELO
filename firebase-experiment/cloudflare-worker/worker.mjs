@@ -341,6 +341,14 @@ async function organizerRooms(request,env,fetcher,uid,reply){
     }else throw new RoomError('Unknown organizer action.');
     return reply(200,publicRoom(await saveRoom(db,row,state)));
   }
+  if(request.method==='GET'&&url.searchParams.get('archive')==='1'){
+    let cursor=null;const raw=url.searchParams.get('cursor');
+    if(raw){try{cursor=JSON.parse(atob(raw))}catch{throw new RoomError('Invalid archive cursor.',400)}requireRoom(cursor&&Number.isSafeInteger(cursor.time)&&/^[a-z0-9-]{36}$/.test(cursor.id),'Invalid archive cursor.',400)}
+    const rows=cursor?await db.prepare('SELECT * FROM match_rooms WHERE created_at < ? OR (created_at = ? AND id < ?) ORDER BY created_at DESC, id DESC LIMIT 51').bind(cursor.time,cursor.time,cursor.id).all():await db.prepare('SELECT * FROM match_rooms ORDER BY created_at DESC, id DESC LIMIT 51').bind().all();
+    const page=rows.results.slice(0,50),last=page.at(-1);
+    const rooms=page.filter(r=>{const s=JSON.parse(r.state);return s.phase==='approved'||r.expires_at<=Date.now()||finalizedTournament(s.tournament)}).map(r=>({...publicRoom(r),createdAt:r.created_at}));
+    return reply(200,{rooms,next:rows.results.length>50?btoa(JSON.stringify({time:last.created_at,id:last.id})):null});
+  }
   if(request.method==='GET'){
     const tournament=url.searchParams.get('tournament');
     requireRoom(!tournament||/^[a-zA-Z0-9:-]+$/.test(tournament),'Invalid tournament.',400);
