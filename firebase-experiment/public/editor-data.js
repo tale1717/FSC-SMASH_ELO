@@ -1,3 +1,4 @@
+import { playerAliases } from './player-aliases.js';
 import { reportFor } from './game-records.js';
 
 export function eventDraft(data, id) {
@@ -19,7 +20,9 @@ export async function previewEdit(base, draft) {
   requireValue(draft.matches.length>0,'Add at least one completed set before publishing.');
   const players=new Map(base.players.map(p=>[p.name,{...p}]));
   const player=async value=>{
-    const name=String(value||'').trim();requireValue(name && name.length<=100,'Enter both player names (up to 100 characters).');
+    let name=String(value||'').trim();const visited=new Set();
+    while(true){const alias=Object.keys(playerAliases).find(k=>k.toLowerCase()===name.toLowerCase()&&playerAliases[k]!==name);if(!alias)break;requireValue(!visited.has(name),'Player alias cycle.');visited.add(name);name=playerAliases[alias];}
+    requireValue(name && name.length<=100,'Enter both player names (up to 100 characters).');
     const existing=[...players.values()].find(p=>p.name.toLowerCase()===name.toLowerCase());if(existing)return existing;
     const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(name));
     const p={id:[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join(''),name};players.set(name,p);return p;

@@ -37,9 +37,9 @@ export function createEditor(auth,api) {
   }));
   async function closeEditedRoom(context,source,note){
     const m=source.matches.find(m=>m.id===context.matchId);if(!m)return;
-    const names=context.room.state.match.players.map(p=>p.name);
+    const edited=draft.matches.find(x=>x.id===context.matchId);
     const token=await auth.currentUser.getIdToken();
-    const response=await fetch(api+'/rooms/'+context.room.id,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action:'organizer-result',revision:context.room.revision,scores:names.map(n=>n===m.winner?m.winnerScore:m.loserScore),records:(draft.matches.find(x=>x.id===context.matchId)?.games||[]).map((g,i)=>({game:i+1,stage:g.stage||'Unknown',characters:[g.a||'Unknown',g.b||'Unknown'],winner:g.winner})),note}),signal:AbortSignal.timeout(15000)});
+    const response=await fetch(api+'/rooms/'+context.room.id,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action:'organizer-result',revision:context.room.revision,scores:[Number(edited.scoreA),Number(edited.scoreB)],records:(draft.matches.find(x=>x.id===context.matchId)?.games||[]).map((g,i)=>({game:i+1,stage:g.stage||'Unknown',characters:[g.a||'Unknown',g.b||'Unknown'],winner:g.winner})),note}),signal:AbortSignal.timeout(15000)});
     const body=await response.json();if(!response.ok)throw Error(body.error||'Room closure failed.');
     window.dispatchEvent(new CustomEvent('organizer-room-closed',{detail:context.room.id}));
   }
@@ -77,6 +77,7 @@ export function createEditor(auth,api) {
     form.append(button('Add completed set',()=>{draft.matches.push({id:'manual-set-'+crypto.randomUUID(),order:Math.max(0,...draft.matches.map(m=>m.order))+1,a:'',b:'',scoreA:2,scoreB:0,games:[]});changed();render()}));
     form.append(button('Save draft in this tab',()=>{sessionStorage.setItem('fsc-editor:'+auth.currentUser.uid,JSON.stringify(draft));status.textContent='Draft saved in this tab. Nothing published.'}));
     form.append(button('Preview Elo and results',async current=>{
+      if(roomContext){const m=draft.matches.find(x=>x.id===roomContext.matchId);if(!m||m.a!==roomContext.room.state.match.players[0].name||m.b!==roomContext.room.state.match.players[1].name)throw Error('Keep the original room opponents when publishing a room result.');}
       const result=await previewEdit(base,draft);if(current!==epoch)return;pending=result;preview.replaceChildren(text('h3','Publication preview'),text('p',draft.event.name+' · '+result.source.matches.length+' sets · '+result.source.reports.length+' sets with game details'));
       const old=new Map(base.players.map(p=>[p.id,p]));const table=document.createElement('table');const head=document.createElement('tr');for(const v of ['Player','Current Elo','After edit'])head.append(text('th',v));table.append(head);
       for(const p of result.dashboard.players){if(old.get(p.id)?.elo===p.elo)continue;const row=document.createElement('tr');for(const v of [p.name,old.get(p.id)?.elo??1000,p.elo])row.append(text('td',v));table.append(row)}preview.append(table);

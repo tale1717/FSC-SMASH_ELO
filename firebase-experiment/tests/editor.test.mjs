@@ -7,3 +7,8 @@ test('editing detail preserves Elo; correcting outcome replays it',async()=>{let
 test('rejects mismatched game results, duplicate orders and self matches',async()=>{const draft=eventDraft(base,'1');draft.matches[0].games=[{winner:1},{winner:1}];await assert.rejects(previewEdit(base,draft),/Game winners/);draft.matches[0].games=[];draft.matches.push({...draft.matches[0],id:'another'});await assert.rejects(previewEdit(base,draft),/unique/);draft.matches.pop();draft.matches[0].b='ALICE';await assert.rejects(previewEdit(base,draft),/themself/)});
 test('new tournament adds participation and preserves earlier records',async()=>{const draft={event:{id:'manual-new',slug:'manual-new',name:'FSC Fall Bracket #2',started:'2026-11-18T12:00:00-05:00',afterSlug:'one'},matches:[{id:'second',order:1,a:'Bob',b:'Alice',scoreA:2,scoreB:1,games:[]}]};const r=await previewEdit(base,draft);assert.equal(r.dashboard.players[0].tournamentCount,2);assert.deepEqual(r.dashboard.matches[0],base.matches[0]);assert.equal(r.dashboard.matches[1].change,38)});
 test('CSV escapes quotes and formulas and supports filtering',()=>{assert.equal(csv([['=1+1','a,"b"','line\nbreak']]),'\uFEFF"\'=1+1","a,""b""","line\nbreak"\r\n');assert.equal(exportRows(base,'sets','missing').length,1);assert.equal(exportRows(base,'official').length,1);assert.equal(exportRows(base,'rankings').length,3)});
+test('manual entry resolves known alts before calculating Elo',async()=>{
+ const data=structuredClone(base);data.players[0].name='Ethanmagoo';
+ const draft=eventDraft(data,'1');draft.matches[0].a='Doc Magoo';
+ const r=await previewEdit(data,draft);assert.equal(r.dashboard.players.length,2);assert.equal(r.source.matches[0].winner,'Ethanmagoo');
+});
