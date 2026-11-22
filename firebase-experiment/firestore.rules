@@ -11,6 +11,17 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/organizerAccess/$(request.auth.uid))
         && get(/databases/$(database)/documents/organizerAccess/$(request.auth.uid)).data.enabled == true);
     }
+    match /organizerDrafts/{uid}/items/{draftId} {
+      allow read, delete: if editor() && request.auth.uid == uid;
+      allow create, update: if editor() && request.auth.uid == uid
+        && request.resource.data.uid == uid && request.resource.data.draft is map
+        && request.resource.data.version is string;
+    }
+    match /organizerDraftIndexes/{uid} {
+      allow read: if editor() && request.auth.uid == uid;
+      allow create, update: if editor() && request.auth.uid == uid
+        && request.resource.data.uid == uid && request.resource.data.items is map;
+    }
     match /public/dashboard {
       allow get: if true;
       allow update: if editor() && request.resource.data.schema == 1

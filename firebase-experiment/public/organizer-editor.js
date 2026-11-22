@@ -1,3 +1,4 @@
+import { saveCloudDraft, listCloudDrafts, loadCloudDraft } from './cloud-drafts.js';
 import { readDashboard, text, cacheDashboard } from './common.js';
 import { readLatestUndo, publishUndo } from './editor-history.js';
 import { eventDraft, previewEdit, duplicateWarnings } from './editor-data.js';
@@ -9,7 +10,7 @@ export function createEditor(auth,api) {
   const status=text('p','Load saved results to begin.');status.setAttribute('role','status');
   const toolbar=document.createElement('div');toolbar.className='organizer-actions';
   const form=document.createElement('div'),preview=document.createElement('div');panel.append(toolbar,status,form,preview);
-  let enabled=false,base=null,draft=null,pending=null,busy=false,epoch=0,roomContext=null;
+  let enabled=false,base=null,draft=null,pending=null,busy=false,epoch=0,roomContext=null;const cloudVersions=new Map();
   const label=(name,input)=>{const l=text('label',name);input.setAttribute('aria-label',name);l.append(input);return l};
   function input(value='',type='text'){const i=document.createElement('input');i.type=type;i.value=value;return i}
   function select(options,value){const s=document.createElement('select');for(const [v,t] of options)s.add(new Option(t,v));s.value=value;return s}
@@ -24,6 +25,18 @@ export function createEditor(auth,api) {
     draft={event:{id:slug,slug,name:'FSC Fall Bracket #'+(base.tournaments.length+1),started:'',afterSlug:base.tournaments.at(-1)?.slug||'',datePrecision:'day'},participants:[],matches:[]};changed();render();
   }));
   toolbar.append(button('Restore my saved draft',()=>{const saved=sessionStorage.getItem('fsc-editor:'+auth.currentUser.uid);if(!saved)throw Error('No draft saved in this tab.');if(!base)throw Error('Load saved results first.');draft=JSON.parse(saved);changed();render();status.textContent='Draft restored. Preview before publishing.'}));
+  const cloudList=document.createElement('div');toolbar.after(cloudList);
+  toolbar.append(button('Load my cloud drafts',async current=>{
+    const {sdk,db}=await database(),uid=auth.currentUser.uid,items=await listCloudDrafts(sdk,db,uid);if(current!==epoch)return;
+    cloudList.replaceChildren();if(!items.length){status.textContent='No cloud drafts saved for this account.';return;}
+    const choice=select(items.map(x=>[x.id,x.name+' · '+new Date(x.updatedAt).toLocaleString()]),items[0].id);
+    cloudList.append(label('Saved cloud draft',choice),button('Open selected cloud draft',async current=>{
+      const saved=await loadCloudDraft(sdk,db,uid,choice.value);if(current!==epoch)return;
+      await load(current);if(current!==epoch)return;
+      draft=saved.draft;draft.staleBase=saved.baseRevision!==base.revision;roomContext=null;cloudVersions.set(choice.value,saved.version);changed();render();
+      status.textContent=saved.baseRevision!==base.revision?'Draft opened. Published results changed since it was saved; review current sets before publishing.':'Cloud draft opened. Review and preview before publishing.';
+    }));
+  }));
   const download=text('a','Download CSV files');download.href='export.html';toolbar.append(download);
   window.addEventListener('edit-room-result',event=>run(async current=>{
     if(!base)await load(current);if(current!==epoch)return;
@@ -76,11 +89,13 @@ export function createEditor(auth,api) {
       card.append(button('Remove this set from draft',()=>{draft.matches.splice(index,1);changed();render()}));cards.append(card);
     }
     form.append(button('Add completed set',()=>{draft.matches.push({id:'manual-set-'+crypto.randomUUID(),order:Math.max(0,...draft.matches.map(m=>m.order))+1,a:'',b:'',scoreA:2,scoreB:0,games:[]});changed();render()}));
+    form.append(button('Save draft across devices',async current=>{const {sdk,db}=await database(),id=draft.event.slug,version=await saveCloudDraft(sdk,db,auth.currentUser.uid,structuredClone(draft),draft.staleBase?null:base.revision,cloudVersions.get(id)||null);if(current!==epoch)return;cloudVersions.set(id,version);status.textContent='Cloud draft saved privately. Sign in with the same organizer account on another device to open it. No results published.'}));
     form.append(button('Save draft in this tab',()=>{sessionStorage.setItem('fsc-editor:'+auth.currentUser.uid,JSON.stringify(draft));status.textContent='Draft saved in this tab. Nothing published.'}));
     form.append(button('Preview Elo and results',async current=>{
       if(roomContext){const m=draft.matches.find(x=>x.id===roomContext.matchId);if(!m||m.a!==roomContext.room.state.match.players[0].name||m.b!==roomContext.room.state.match.players[1].name)throw Error('Keep the original room opponents when publishing a room result.');}
       const result=await previewEdit(base,draft);if(current!==epoch)return;pending=result;preview.replaceChildren(text('h3','Publication preview'),text('p',draft.event.name+' · '+result.source.matches.length+' sets · '+result.source.reports.length+' sets with game details'));
       const acknowledgements=[];
+      if(draft.staleBase){const ack=input('','checkbox');acknowledgements.push(ack);preview.append(label('Published results changed since this draft. I reviewed all sets against the latest results and intend to replace this tournament.',ack));}
       for(const warning of duplicateWarnings(base,result.source)){const box=document.createElement('fieldset');box.append(text('legend',warning.identical?'Possible duplicate set':'Repeated opponents'));for(const m of warning.sets)box.append(text('p','Set '+m.order+': '+m.winner+' '+m.winnerScore+'–'+m.loserScore+' '+m.loser));const ack=input('','checkbox');acknowledgements.push(ack);box.append(label('These are separate sets (rematch or bracket reset): '+warning.players.join(' vs '),ack));preview.append(box);}
       const old=new Map(base.players.map(p=>[p.id,p]));const table=document.createElement('table');const head=document.createElement('tr');for(const v of ['Player','Current Elo','After edit'])head.append(text('th',v));table.append(head);
       for(const p of result.dashboard.players){if(old.get(p.id)?.elo===p.elo)continue;const row=document.createElement('tr');for(const v of [p.name,old.get(p.id)?.elo??1000,p.elo])row.append(text('td',v));table.append(row)}preview.append(table);
@@ -120,5 +135,5 @@ export function createEditor(auth,api) {
   const access=document.createElement('details');access.hidden=true;access.append(text('summary','Invite-only editing access'));
   const accessUid=input('');access.append(label('Approved organizer UID',accessUid),text('p','Create their account in Firebase and add their UID to the Worker organizer list first. This grants result-editing access only.'));
   for(const [title,value] of [['Grant editing access',true],['Revoke editing access',false]])access.append(button(title,async()=>{const uid=accessUid.value.trim();if(!/^[a-zA-Z0-9_-]{1,128}$/.test(uid))throw Error('Enter a valid Firebase UID.');const {sdk,db}=await database();await sdk.setDoc(sdk.doc(db,'organizerAccess',uid),{enabled:value});status.textContent=value?'Editing access granted.':'Editing access revoked.'}));panel.append(access);
-  return {enable(role){enabled=true;panel.hidden=false;access.hidden=role!=='owner';undoPanel.hidden=role!=='owner'},reset(){epoch++;enabled=false;undoPreview.replaceChildren();roomContext=null;base=null;draft=null;pending=null;panel.hidden=true;form.replaceChildren();preview.replaceChildren();status.textContent='Load saved results to begin.'}};
+  return {enable(role){enabled=true;panel.hidden=false;access.hidden=role!=='owner';undoPanel.hidden=role!=='owner'},reset(){epoch++;enabled=false;cloudVersions.clear();cloudList.replaceChildren();undoPreview.replaceChildren();roomContext=null;base=null;draft=null;pending=null;panel.hidden=true;form.replaceChildren();preview.replaceChildren();status.textContent='Load saved results to begin.'}};
 }

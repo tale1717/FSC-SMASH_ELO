@@ -42,3 +42,23 @@ test('undo restores the latest publication and importer override in one transact
 test('undo does not offer incomplete legacy backups',()=>{
  assert.throws(()=>prepareUndo(base,null,base,null),/no complete undo/);
 });
+
+ test('cloud drafts are private by UID and detect conflicting device saves',async()=>{
+  const {saveCloudDraft,listCloudDrafts,loadCloudDraft}=await import('../public/cloud-drafts.js');
+  const records=new Map(),snap=k=>({exists:()=>records.has(k),data:()=>structuredClone(records.get(k))});
+  const sdk={doc:(_, ...parts)=>parts.join('/'),getDoc:async k=>snap(k),runTransaction:async(_,fn)=>fn({get:async k=>snap(k),set:(k,v)=>records.set(k,structuredClone(v))})};
+  const draft={event:{slug:'test-event',name:'Test'},matches:[]};
+  const first=await saveCloudDraft(sdk,null,'alice',draft,'r1');
+  assert.equal((await listCloudDrafts(sdk,null,'alice')).length,1);
+  assert.equal((await listCloudDrafts(sdk,null,'bob')).length,0);
+  const secondDevice=await loadCloudDraft(sdk,null,'alice','test-event');assert.equal(secondDevice.version,first);
+  await saveCloudDraft(sdk,null,'alice',draft,'r1',first);
+  await assert.rejects(saveCloudDraft(sdk,null,'alice',draft,'r1',secondDevice.version),/another device/);
+ });
+ test('coverage excludes unconfirmed reports and tracks unknown details separately',async()=>{
+  const {coverage}=await import('../public/game-records.js');
+  const match={id:'1',tournament:'t',winner:'a',loser:'b',winnerScore:2,loserScore:0};
+  const games=[1,2].map(number=>({number,winner:'a',stage:number===1?'Unknown':'PS2',characters:{a:'Mario',b:'Unknown'}}));
+  const data={matches:[match,{...match,id:'2'}],gameReports:[{tournament:'t',match:'1',status:'confirmed',games}]};
+  assert.deepEqual(coverage(data),{sets:2,covered:1,games:2,stages:1,characters:0});
+ });

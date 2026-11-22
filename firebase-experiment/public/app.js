@@ -1,3 +1,4 @@
+import { coverageLabel } from './game-records.js';
 import { rankedPlayers, tournamentCount, eligibilityLabel, isQualified } from './eligibility.js';
 import { $, text, characterIcon, playerUrl, readDashboard, eventDate } from './common.js';
 
@@ -73,6 +74,7 @@ async function load() {
     $('events-count').textContent = data.tournaments.length;
     $('sets-count').textContent = data.matches.length;
     dashboard = data;
+    $('status').after(text('p',coverageLabel(data)+' · Game statistics use recorded details only.'));
     if (data.reviewedHistory?.matches?.length) {
       const notice = text('p', 'Bracket #6 reviewed game records are available. Elo remains pending full bracket import. ');
       const link = text('a', 'View reviewed sets'); link.href = 'reviewed.html'; notice.append(link);
@@ -97,6 +99,7 @@ async function load() {
       link.href = `https://challonge.com/${encodeURIComponent(event.slug)}`;
       link.target = '_blank'; link.rel = 'noopener noreferrer';
       item.append(link, document.createTextNode(` · ${event.sets} sets · ${eventDate(event.started)}`));
+      item.append(text('p',coverageLabel(data,data.matches.filter(m=>m.tournament===event.id))));
       $('tournaments').append(item);
     }
   } catch {
@@ -104,4 +107,5 @@ async function load() {
   }
 }
 load();
+
 

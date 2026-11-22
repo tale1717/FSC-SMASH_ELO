@@ -1,11 +1,11 @@
 import { $, text } from './common.js';
-import { playerGames, aggregateGames, reportFor } from './game-records.js';
+import { playerGames, aggregateGames, reportFor, coverageLabel } from './game-records.js';
 
 export function renderStats(data, player) {
   const matches = data.matches.filter(m => [m.winner, m.loser].includes(player.id));
   const games = playerGames(data, player.id);
   const covered = matches.filter(m => reportFor(data, m)).length;
-  $('game-coverage').textContent = `${games.length} confirmed games · Game details recorded for ${covered} of ${matches.length} sets`;
+  $('game-coverage').textContent = `${games.length} confirmed games · Game details recorded for ${covered} of ${matches.length} sets · ${coverageLabel(data,matches)}`;
   $('stats-empty').hidden = games.length > 0;
   $('game-stat-tables').hidden = games.length === 0;
   const filter = $('character-filter');
@@ -29,3 +29,4 @@ export function renderStats(data, player) {
   }
   filter.addEventListener('change', render); render();
 }
+

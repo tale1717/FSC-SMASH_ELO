@@ -90,3 +90,17 @@ test('organizer can record an unreported result and it disappears after approval
  assert.equal((await(await f.send('/rooms')).json()).rooms.length,0);assert.equal((await(await f.send('/lobby')).json()).rooms.length,0);
  }finally{f.sqlite.close()}
 });
+
+test('archive is authenticated, excludes active rooms and never exposes codes or calls Challonge',async()=>{
+ const f=fixture();try{
+ const archived=await f.create(),active=await f.create('51');
+ f.sqlite.prepare('UPDATE match_rooms SET expires_at=0 WHERE id=?').run(archived.room.id);
+ const {handle}=await import('./worker.mjs');let calls=0;
+ const fetcher=async(url)=>{assert.ok(url.includes('identitytoolkit'));calls++;return Response.json({users:[{localId:'owner'}]})};
+ const request=path=>new Request('https://api.example'+path,{headers:{Origin:'https://fsc-smash-elo.web.app',Authorization:'Bearer '+f.token}});
+ const response=await handle(request('/rooms?archive=1'),f.env,fetcher),data=await response.json();
+ assert.equal(response.status,200);assert.equal(calls,1);assert.deepEqual(data.rooms.map(r=>r.id),[archived.room.id]);assert.ok(!data.rooms.some(r=>r.id===active.room.id));
+ assert.equal(data.rooms[0].codes,undefined);assert.equal(data.rooms[0].state._codes,undefined);assert.equal(data.next,null);
+ assert.equal((await handle(request('/rooms?archive=1&cursor='+btoa('null')),f.env,fetcher)).status,400);
+ }finally{f.sqlite.close()}
+});
