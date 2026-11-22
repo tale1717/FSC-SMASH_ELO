@@ -68,3 +68,16 @@ export async function previewEdit(base, draft) {
   requireValue(new TextEncoder().encode(JSON.stringify(result)).length<750000,'The snapshot is too large. Split storage before publishing more data.');
   return {dashboard:result,source};
 }
+
+// A repeated opponent pair is a warning, not proof of a duplicate.
+export function duplicateWarnings(base, source) {
+  const names=new Map(base.players.map(p=>[p.id,p.name.toLowerCase()]));
+  const pair=(a,b)=>JSON.stringify([a.toLowerCase(),b.toLowerCase()].sort());
+  const prior=new Map(base.matches.filter(m=>m.tournament===source.event.id).map(m=>[m.id,pair(names.get(m.winner)||'',names.get(m.loser)||'')]));
+  const groups=new Map();
+  for(const m of source.matches){const key=pair(m.winner,m.loser);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(m);}
+  return [...groups.entries()].filter(([key,sets])=>sets.length>1&&sets.some(m=>prior.get(m.id)!==key)).map(([key,sets])=>({
+    key,sets,players:[sets[0].winner,sets[0].loser],
+    identical:sets.some((m,i)=>sets.slice(i+1).some(n=>m.winner===n.winner&&m.loser===n.loser&&m.winnerScore===n.winnerScore&&m.loserScore===n.loserScore))
+  }));
+}

@@ -12,3 +12,33 @@ test('manual entry resolves known alts before calculating Elo',async()=>{
  const draft=eventDraft(data,'1');draft.matches[0].a='Doc Magoo';
  const r=await previewEdit(data,draft);assert.equal(r.dashboard.players.length,2);assert.equal(r.source.matches[0].winner,'Ethanmagoo');
 });
+
+import {duplicateWarnings} from '../public/editor-data.js';
+import {prepareUndo,publishUndo} from '../public/editor-history.js';
+test('duplicate warnings flag new repeated pairs, allowing acknowledged resets without blocking existing history',async()=>{
+ const draft=eventDraft(base,'1');draft.matches.push({...draft.matches[0],id:'reset',order:2});
+ const result=await previewEdit(base,draft),warnings=duplicateWarnings(base,result.source);
+ assert.equal(warnings.length,1);assert.equal(warnings[0].identical,true);
+ assert.equal(duplicateWarnings(result.dashboard,result.source).length,0);
+ draft.matches[1].scoreA=0;draft.matches[1].scoreB=2;
+ const reset=await previewEdit(base,draft);assert.equal(duplicateWarnings(base,reset.source)[0].identical,false);
+ const otherEvent={...result.source,event:{...result.source.event,id:'2'},matches:[result.source.matches[0]]};assert.equal(duplicateWarnings(base,otherEvent).length,0);
+});
+test('undo restores the latest publication and importer override in one transaction, rejecting stale previews',async()=>{
+ const published=structuredClone(base);published.revision='new';published.players[0].elo=999;
+ const prior={source:{event:{slug:'one',organizerOrder:['outdated']},matches:[]},updatedBy:'owner'};
+ const state={revision:'new',slug:'one',tournament:'1',previousOverride:prior};
+ const audit={tournament:'1',previousRevision:'a',note:'Mistake'};
+ const plan=prepareUndo(published,audit,base,state);
+ const store=new Map([['public/dashboard',published],['organizerAudit/new',audit],['organizerBackups/new',base],['organizerUndo/new',state],['organizerOverrides/one',{source:{event:{slug:'one'}}}]]);
+ let commits=0;
+ const sdk={doc:(db,...parts)=>parts.join('/'),runTransaction:async(db,fn)=>{const ops=[];await fn({get:async ref=>({exists:()=>store.has(ref),data:()=>structuredClone(store.get(ref))}),set:(r,v)=>ops.push([r,v]),delete:r=>ops.push([r,null])});for(const[r,v]of ops){if(v===null)store.delete(r);else store.set(r,v)}commits++}};
+ await publishUndo(sdk,{},plan,'owner','Correct mistake');
+ assert.deepEqual(store.get('public/dashboard').players,base.players);
+ assert.deepEqual(store.get('organizerOverrides/one').source.event.organizerOrder,['one']);
+ assert.equal(store.get('organizerBackups/'+plan.dashboard.revision).revision,'new');
+ await assert.rejects(publishUndo(sdk,{},plan,'owner','Again'),/Another publication/);assert.equal(commits,1);
+});
+test('undo does not offer incomplete legacy backups',()=>{
+ assert.throws(()=>prepareUndo(base,null,base,null),/no complete undo/);
+});

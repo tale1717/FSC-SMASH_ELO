@@ -20,11 +20,19 @@ service cloud.firestore {
     }
     match /organizerOverrides/{slug} {
       allow read: if editor();
+      allow delete: if owner();
       allow create, update: if editor() && request.resource.data.source.event.slug == slug
         && request.resource.data.updatedBy == request.auth.uid;
     }
+    match /organizerUndo/{revision} {
+      allow read: if owner();
+      allow create: if editor() && request.resource.data.revision == revision
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
     match /organizerBackups/{revision} {
-      allow read, create: if editor();
+      allow read: if owner();
+      allow create: if editor();
       allow update, delete: if false;
     }
     match /organizerAudit/{revision} {

@@ -1,5 +1,6 @@
 import { readDashboard, text, cacheDashboard } from './common.js';
-import { eventDraft, previewEdit } from './editor-data.js';
+import { readLatestUndo, publishUndo } from './editor-history.js';
+import { eventDraft, previewEdit, duplicateWarnings } from './editor-data.js';
 
 export function createEditor(auth,api) {
   const panel=document.createElement('section');panel.hidden=true;panel.id='results-editor';
@@ -79,16 +80,21 @@ export function createEditor(auth,api) {
     form.append(button('Preview Elo and results',async current=>{
       if(roomContext){const m=draft.matches.find(x=>x.id===roomContext.matchId);if(!m||m.a!==roomContext.room.state.match.players[0].name||m.b!==roomContext.room.state.match.players[1].name)throw Error('Keep the original room opponents when publishing a room result.');}
       const result=await previewEdit(base,draft);if(current!==epoch)return;pending=result;preview.replaceChildren(text('h3','Publication preview'),text('p',draft.event.name+' · '+result.source.matches.length+' sets · '+result.source.reports.length+' sets with game details'));
+      const acknowledgements=[];
+      for(const warning of duplicateWarnings(base,result.source)){const box=document.createElement('fieldset');box.append(text('legend',warning.identical?'Possible duplicate set':'Repeated opponents'));for(const m of warning.sets)box.append(text('p','Set '+m.order+': '+m.winner+' '+m.winnerScore+'–'+m.loserScore+' '+m.loser));const ack=input('','checkbox');acknowledgements.push(ack);box.append(label('These are separate sets (rematch or bracket reset): '+warning.players.join(' vs '),ack));preview.append(box);}
       const old=new Map(base.players.map(p=>[p.id,p]));const table=document.createElement('table');const head=document.createElement('tr');for(const v of ['Player','Current Elo','After edit'])head.append(text('th',v));table.append(head);
       for(const p of result.dashboard.players){if(old.get(p.id)?.elo===p.elo)continue;const row=document.createElement('tr');for(const v of [p.name,old.get(p.id)?.elo??1000,p.elo])row.append(text('td',v));table.append(row)}preview.append(table);
       const reason=input('');preview.append(label('Change note',reason));
       preview.append(button('Publish reviewed results',async current=>{
+        if(acknowledgements.some(a=>!a.checked))throw Error('Review repeated opponents and confirm that each flagged group contains separate sets.');
         if(!pending)throw Error('Preview your changes again.');if(!reason.value.trim())throw Error('Add a short change note.');
         const {sdk,db}=await database(),uid=auth.currentUser.uid,publication=pending,expected=base.revision;
         await sdk.runTransaction(db,async tx=>{
           const ref=sdk.doc(db,'public','dashboard'),snap=await tx.get(ref);
           if(!snap.exists()||snap.data().revision!==expected)throw Error('Results changed on another device. Save your draft, reload saved results, then review again.');
+          const priorOverride=await tx.get(sdk.doc(db,'organizerOverrides',publication.source.event.slug));
           const rev=publication.dashboard.revision;
+          tx.set(sdk.doc(db,'organizerUndo',rev),{revision:rev,slug:publication.source.event.slug,tournament:publication.source.event.id,previousOverride:priorOverride.exists()?priorOverride.data():null,uid});
           tx.set(sdk.doc(db,'organizerBackups',rev),snap.data());
           tx.set(sdk.doc(db,'organizerOverrides',publication.source.event.slug),{source:publication.source,updatedBy:uid,updatedAt:publication.dashboard.updatedAt});
           tx.set(sdk.doc(db,'organizerAudit',rev),{uid,tournament:publication.source.event.id,note:reason.value.trim().slice(0,500),updatedAt:publication.dashboard.updatedAt,previousRevision:expected||null});
@@ -99,8 +105,20 @@ export function createEditor(auth,api) {
       }));status.textContent='Review the preview, then publish when correct.';
     }));
   }
+  const undoPanel=document.createElement('section');undoPanel.hidden=true;
+  undoPanel.append(text('h3','Undo latest publication'),text('p','Owner only. Preview and restore the results from immediately before the latest organizer publication. Later edits cannot be overwritten. This does not reopen player rooms.'));
+  const undoPreview=document.createElement('div');
+  undoPanel.append(button('Preview latest undo',async current=>{
+    const {sdk,db}=await database(),plan=await readLatestUndo(sdk,db);if(current!==epoch)return;
+    undoPreview.replaceChildren(text('p','Undo change: '+plan.note),text('p','Restore '+plan.dashboard.tournaments.length+' tournaments and '+plan.dashboard.matches.length+' sets from '+new Date(plan.originalUpdatedAt).toLocaleString()+'. Ratings and game details will also be restored.'));
+    const reason=input('');undoPreview.append(label('Undo reason',reason));
+    undoPreview.append(button('Restore previous results',async current=>{
+      const restored=await publishUndo(sdk,db,plan,auth.currentUser.uid,reason.value);
+      if(current!==epoch)return;base=restored;cacheDashboard(base);draft=null;roomContext=null;changed();render();undoPreview.replaceChildren();status.textContent='Previous results restored. The replaced version was backed up; importer corrections were restored too.';
+    }));
+  }),undoPreview);panel.append(undoPanel);
   const access=document.createElement('details');access.hidden=true;access.append(text('summary','Invite-only editing access'));
   const accessUid=input('');access.append(label('Approved organizer UID',accessUid),text('p','Create their account in Firebase and add their UID to the Worker organizer list first. This grants result-editing access only.'));
   for(const [title,value] of [['Grant editing access',true],['Revoke editing access',false]])access.append(button(title,async()=>{const uid=accessUid.value.trim();if(!/^[a-zA-Z0-9_-]{1,128}$/.test(uid))throw Error('Enter a valid Firebase UID.');const {sdk,db}=await database();await sdk.setDoc(sdk.doc(db,'organizerAccess',uid),{enabled:value});status.textContent=value?'Editing access granted.':'Editing access revoked.'}));panel.append(access);
-  return {enable(role){enabled=true;panel.hidden=false;access.hidden=role!=='owner'},reset(){epoch++;enabled=false;roomContext=null;base=null;draft=null;pending=null;panel.hidden=true;form.replaceChildren();preview.replaceChildren();status.textContent='Load saved results to begin.'}};
+  return {enable(role){enabled=true;panel.hidden=false;access.hidden=role!=='owner';undoPanel.hidden=role!=='owner'},reset(){epoch++;enabled=false;undoPreview.replaceChildren();roomContext=null;base=null;draft=null;pending=null;panel.hidden=true;form.replaceChildren();preview.replaceChildren();status.textContent='Load saved results to begin.'}};
 }
