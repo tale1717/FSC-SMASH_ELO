@@ -62,3 +62,13 @@ test('undo does not offer incomplete legacy backups',()=>{
   const data={matches:[match,{...match,id:'2'}],gameReports:[{tournament:'t',match:'1',status:'confirmed',games}]};
   assert.deepEqual(coverage(data),{sets:2,covered:1,games:2,stages:1,characters:0});
  });
+
+test('missing-detail filters distinguish absent reports from unknown fields',async()=>{
+ const {missingDetails}=await import('../public/game-records.js');
+ const m={id:'m',tournament:'t',winner:'a',loser:'b',winnerScore:2,loserScore:0};
+ const data={gameReports:[]};assert.equal(missingDetails(data,m).report,true);
+ const games=[1,2].map(number=>({number,winner:'a',stage:'PS2',characters:{a:'Mario',b:'Cloud'}}));
+ data.gameReports=[{match:'m',tournament:'t',status:'confirmed',games}];assert.equal(missingDetails(data,m).missing,false);
+ games[1].stage='Unknown';games[0].characters.b='Unknown';
+ const result=missingDetails(data,m);assert.equal(result.stage,true);assert.equal(result.character,true);assert.equal(result.report,false);
+});

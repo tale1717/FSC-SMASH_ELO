@@ -43,3 +43,11 @@ export function coverage(data, matches=data.matches) {
   return {sets:matches.length,covered:reports.length,games:games.length,stages:games.filter(g=>known(g.stage)).length,characters:games.filter(g=>Object.values(g.characters).every(known)).length};
 }
 export function coverageLabel(data,matches=data.matches){const c=coverage(data,matches);return `Game records: ${c.covered} / ${c.sets} sets · Known stages: ${c.stages} / ${c.games} recorded games · Both characters known: ${c.characters} / ${c.games}`;}
+
+export function missingDetails(data,match){
+  const report=reportFor(data,match);
+  if(!report)return {missing:true,report:true,stage:false,character:false,labels:['No valid game report']};
+  const unknown=v=>!v?.trim()||/^unknown$/i.test(v.trim());
+  const stage=report.games.some(g=>unknown(g.stage)),character=report.games.some(g=>[match.winner,match.loser].some(id=>unknown(g.characters[id])));
+  return {missing:stage||character,report:false,stage,character,labels:[...(stage?['Unknown stages']:[]),...(character?['Unknown characters']:[])]};
+}

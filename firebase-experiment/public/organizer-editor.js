@@ -10,7 +10,8 @@ export function createEditor(auth,api) {
   const status=text('p','Load saved results to begin.');status.setAttribute('role','status');
   const toolbar=document.createElement('div');toolbar.className='organizer-actions';
   const form=document.createElement('div'),preview=document.createElement('div');panel.append(toolbar,status,form,preview);
-  let enabled=false,base=null,draft=null,pending=null,busy=false,epoch=0,roomContext=null;const cloudVersions=new Map();
+  let enabled=false,base=null,draft=null,pending=null,busy=false,epoch=0,roomContext=null;const cloudVersions=new Map();let focusedMatch=null;
+  function announce(){window.dispatchEvent(new CustomEvent("saved-results-updated",{detail:base}))}
   const label=(name,input)=>{const l=text('label',name);input.setAttribute('aria-label',name);l.append(input);return l};
   function input(value='',type='text'){const i=document.createElement('input');i.type=type;i.value=value;return i}
   function select(options,value){const s=document.createElement('select');for(const [v,t] of options)s.add(new Option(t,v));s.value=value;return s}
@@ -19,7 +20,7 @@ export function createEditor(auth,api) {
   function field(name,value,onchange,type='text'){const i=input(value,type);i.addEventListener('change',()=>{onchange(i.value);changed()});return label(name,i)}
   async function run(action){if(!enabled||busy)return;busy=true;const current=epoch;try{await action(current)}catch(e){if(current===epoch)status.textContent=e.code==='permission-denied'?'Editing permission is missing. Deploy the Firestore rules; invited editors also need owner approval for result editing.':e.message}finally{busy=false}}
   async function database(){const sdk=await import('https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js');return {sdk,db:sdk.getFirestore(auth.app)}}
-  async function load(current){const data=await readDashboard(true);if(current!==epoch)return;if(!data)throw Error('No published history found.');base=data;draft=null;roomContext=null;changed();render();status.textContent='Saved results loaded. Select a tournament or create one.'}
+  async function load(current){const data=await readDashboard(true);if(current!==epoch)return;if(!data)throw Error('No published history found.');base=data;announce();draft=null;roomContext=null;changed();render();status.textContent='Saved results loaded. Select a tournament or create one.'}
   toolbar.append(button('Load / refresh saved results',load),button('New manual tournament',()=>{
     if(!base)throw Error('Load saved results first.');roomContext=null;const slug='manual-'+crypto.randomUUID();
     draft={event:{id:slug,slug,name:'FSC Fall Bracket #'+(base.tournaments.length+1),started:'',afterSlug:base.tournaments.at(-1)?.slug||'',datePrecision:'day'},participants:[],matches:[]};changed();render();
@@ -38,6 +39,15 @@ export function createEditor(auth,api) {
     }));
   }));
   const download=text('a','Download CSV files');download.href='export.html';toolbar.append(download);
+  window.addEventListener('edit-saved-set',event=>run(async()=>{
+    const selection=event.detail;
+    if(!selection.data.matches.some(m=>m.id===selection.match&&m.tournament===selection.tournament))throw Error('This set is no longer available. Refresh the overview.');
+    if(draft)sessionStorage.setItem('fsc-editor:'+auth.currentUser.uid,JSON.stringify(draft));
+    base=selection.data;draft=eventDraft(base,selection.tournament);roomContext=null;focusedMatch=selection.match;changed();render();
+    const card=[...form.querySelectorAll('[data-match]')].find(c=>c.dataset.match===String(focusedMatch));
+    if(card){card.open=true;card.scrollIntoView({behavior:'smooth',block:'start'});card.querySelector('summary').focus()}
+    status.textContent='Selected set opened. Any previous draft was saved in this tab. Preview changes before publishing.';
+  }));
   window.addEventListener('edit-room-result',event=>run(async current=>{
     if(!base)await load(current);if(current!==epoch)return;
     const room=event.detail,s=room.state;if(s.isTest)throw Error('Test rooms cannot be published to Elo.');
@@ -71,7 +81,7 @@ export function createEditor(auth,api) {
     const names=document.createElement('datalist');names.id='editor-player-names';for(const p of base.players)names.append(new Option(p.name));form.append(names);
     const cards=document.createElement('div');form.append(cards);
     for(const [index,m] of draft.matches.entries()){
-      const card=document.createElement('details');card.className='match-card';card.open=index===draft.matches.length-1;
+      const card=document.createElement('details');card.className='match-card';card.dataset.match=String(m.id);card.open=focusedMatch===m.id||(!focusedMatch&&index===draft.matches.length-1);
       card.append(text('summary','Set '+m.order+' · '+(m.a||'Player 1')+' vs '+(m.b||'Player 2')+' · '+m.scoreA+'–'+m.scoreB));
       const fields=document.createElement('div');fields.className='editor-fields';
       fields.append(field('Set order',m.order,v=>m.order=Number(v),'number'));
@@ -115,7 +125,7 @@ export function createEditor(auth,api) {
           tx.set(sdk.doc(db,'organizerAudit',rev),{uid,tournament:publication.source.event.id,note:reason.value.trim().slice(0,500),updatedAt:publication.dashboard.updatedAt,previousRevision:expected||null});
           tx.set(ref,publication.dashboard);
         });
-        if(current!==epoch)return;base=publication.dashboard;cacheDashboard(base);pending=null;preview.replaceChildren();render();status.textContent='Published. Rankings and game statistics updated; previous results backed up. No Challonge requests were made.';
+        if(current!==epoch)return;base=publication.dashboard;cacheDashboard(base);announce();pending=null;preview.replaceChildren();render();status.textContent='Published. Rankings and game statistics updated; previous results backed up. No Challonge requests were made.';
         if(roomContext){try{await closeEditedRoom(roomContext,publication.source,reason.value);roomContext=null;status.textContent+=' Room closed.'}catch(e){status.textContent+=' Room not closed: '+e.message+' Refresh rooms before retrying.'}}
       }));status.textContent='Review the preview, then publish when correct.';
     }));
@@ -129,7 +139,7 @@ export function createEditor(auth,api) {
     const reason=input('');undoPreview.append(label('Undo reason',reason));
     undoPreview.append(button('Restore previous results',async current=>{
       const restored=await publishUndo(sdk,db,plan,auth.currentUser.uid,reason.value);
-      if(current!==epoch)return;base=restored;cacheDashboard(base);draft=null;roomContext=null;changed();render();undoPreview.replaceChildren();status.textContent='Previous results restored. The replaced version was backed up; importer corrections were restored too.';
+      if(current!==epoch)return;base=restored;cacheDashboard(base);announce();draft=null;roomContext=null;changed();render();undoPreview.replaceChildren();status.textContent='Previous results restored. The replaced version was backed up; importer corrections were restored too.';
     }));
   }),undoPreview);panel.append(undoPanel);
   const access=document.createElement('details');access.hidden=true;access.append(text('summary','Invite-only editing access'));

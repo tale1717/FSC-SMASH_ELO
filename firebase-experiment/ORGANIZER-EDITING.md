@@ -33,3 +33,11 @@ Use **Save draft across devices** to save a private draft for your organizer UID
 Coverage labels distinguish recorded sets, known stages, and games with both characters known. They use the already-loaded snapshot. **Refresh saved data** checks Firebase once and reloads the view using its cached snapshot. Normal navigation reuses that snapshot for one minute.
 
 Deploy Hosting and Firestore rules and update Cloudflare from `cloudflare-worker/worker.mjs`. No new database migration or Challonge request is required for these features.
+
+### Organizer overview
+
+**Load / refresh overview** reads the published Firebase snapshot and saved Cloudflare rooms, without calling Challonge. It shows active rooms loaded, results awaiting TO approval, and saved sets missing details. Refresh is manual; filters and search make no requests. A partial refresh failure retains previous values and displays a warning.
+
+Filter saved sets by tournament, player, absent game reports, unknown stages, or unknown characters. Missing reports are listed separately from recorded games whose fields are unknown. **Edit this set** opens the exact set and preserves any previously open draft in this tab. Edits still require preview and publication. Completed room approvals and published edits update the overview locally.
+
+Deploy Hosting for this overview update. No additional Worker or rules deployment is needed.

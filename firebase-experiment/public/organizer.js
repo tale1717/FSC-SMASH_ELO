@@ -1,3 +1,4 @@
+import { createOverview } from './organizer-overview.js';
 import { createEditor } from './organizer-editor.js';
 import { createLiveDashboard } from './organizer-matches.js';
 const $ = id => document.getElementById(id);
@@ -33,6 +34,7 @@ async function start() {
     const auth = sdk.getAuth(getApps().length ? getApp() : initializeApp(firebaseConfig));
     const live = createLiveDashboard(auth, api);
     const editor = createEditor(auth,api);
+    const overview = createOverview(auth,api);
     await sdk.setPersistence(auth, sdk.browserSessionPersistence);
     const provider = new sdk.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -59,6 +61,7 @@ async function start() {
       const current = ++revision;
       live.reset();
       editor.reset();
+      overview.reset();
       identity.hidden = true;
       uid.value = '';
       copyStatus.textContent = '';
@@ -90,6 +93,7 @@ async function start() {
         identity.hidden = false;
         live.enable();
         editor.enable(data.role);
+        overview.enable();
         uid.value = user.uid;
         $('organizer-account').textContent = user.email || 'Organizer account';
         status.textContent = data.role === 'owner' ? 'Owner access confirmed.' : 'Organizer access confirmed.';
