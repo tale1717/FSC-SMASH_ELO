@@ -18,10 +18,11 @@ export async function previewEdit(base, draft) {
   requireValue(typeof event.started==='string' && Number.isFinite(Date.parse(event.started)),'Choose a tournament date.');
   requireValue(typeof event.id==='string' && typeof event.slug==='string' && /^[a-zA-Z0-9_-]+$/.test(event.slug),'Invalid tournament identity.');
   requireValue(draft.matches.length>0,'Add at least one completed set before publishing.');
+  const aliases={...playerAliases,...(base.aliases||{})};
   const players=new Map(base.players.map(p=>[p.name,{...p}]));
   const player=async value=>{
     let name=String(value||'').trim();const visited=new Set();
-    while(true){const alias=Object.keys(playerAliases).find(k=>k.toLowerCase()===name.toLowerCase()&&playerAliases[k]!==name);if(!alias)break;requireValue(!visited.has(name),'Player alias cycle.');visited.add(name);name=playerAliases[alias];}
+    while(true){const alias=Object.keys(aliases).find(k=>k.toLowerCase()===name.toLowerCase()&&aliases[k]!==name);if(!alias)break;requireValue(!visited.has(name),'Player alias cycle.');visited.add(name);name=aliases[alias];}
     requireValue(name && name.length<=100,'Enter both player names (up to 100 characters).');
     const existing=[...players.values()].find(p=>p.name.toLowerCase()===name.toLowerCase());if(existing)return existing;
     const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(name));
@@ -59,7 +60,7 @@ export async function previewEdit(base, draft) {
   }
   // Preserve appearances not represented by a played set, including byes/DQs.
   const formerAppearances=new Map(base.players.map(p=>[p.id,new Set(base.matches.filter(m=>[m.winner,m.loser].includes(p.id)).map(m=>m.tournament))]));
-  for(const p of ratings.values())p.tournamentCount=appearances.get(p.id).size+Math.max(0,(allById.get(p.id).tournamentCount||0)-(formerAppearances.get(p.id)?.size||0));
+  for(const p of ratings.values()){const old=allById.get(p.id);if(old.tournamentIds){p.tournamentIds=[...new Set([...old.tournamentIds,...appearances.get(p.id)])];p.tournamentCount=p.tournamentIds.length}else p.tournamentCount=appearances.get(p.id).size+Math.max(0,(old.tournamentCount||0)-(formerAppearances.get(p.id)?.size||0));}
   for(const old of base.players)if(!ratings.has(old.id))ratings.set(old.id,{...old,elo:1000,wins:0,losses:0});
   result.players=[...ratings.values()].sort((a,b)=>b.elo-a.elo||(a.name<b.name?-1:a.name>b.name?1:0));
   result.gameReports=[...(base.gameReports||[]).filter(r=>r.tournament!==event.id),...reports];

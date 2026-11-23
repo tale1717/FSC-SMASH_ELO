@@ -11,6 +11,7 @@ from engine import select, normalize, build, validate_size
 from game_reports import load_reports
 from manual_sources import include_manual
 from organizer_overrides import apply_overrides
+from dynamic_aliases import apply_aliases
 
 PROJECT = 'fsc-smash-elo'
 
@@ -60,6 +61,7 @@ def main():
     dashboard = load_reports(build(include_manual(sources), aliases))
     overrides = [doc.to_dict() for doc in db.collection('organizerOverrides').stream()]
     dashboard = apply_overrides(dashboard, overrides, aliases, include_manual(sources))
+    dashboard = apply_aliases(dashboard, (old.to_dict() or {}).get('aliases', {}))
     if old.exists and all(old.to_dict().get(k) == v for k, v in dashboard.items()) and not updates:
         print('Already current. No rating changes or writes.')
         return

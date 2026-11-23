@@ -1,3 +1,4 @@
+import {characterNames} from './character-names.js';
 import { saveCloudDraft, listCloudDrafts, loadCloudDraft } from './cloud-drafts.js';
 import { readDashboard, text, cacheDashboard } from './common.js';
 import { readLatestUndo, publishUndo } from './editor-history.js';
@@ -68,6 +69,9 @@ export function createEditor(auth,api) {
     window.dispatchEvent(new CustomEvent('organizer-room-closed',{detail:context.room.id}));
   }
   function render(){
+    const same=form.dataset.event===draft?.event.id,scroll=window.scrollY;
+    const opened=new Map([...form.querySelectorAll('details[data-key]')].map(e=>[e.dataset.key,e.open]));
+    form.dataset.event=draft?.event.id||'';
     form.replaceChildren();if(!base)return;
     const picker=select([['','Choose a tournament'],...base.tournaments.slice().reverse().map(t=>[t.id,t.name])],draft?.event.id||'');
     picker.addEventListener('change',()=>{if(!picker.value)return;draft=eventDraft(base,picker.value);roomContext=null;changed();render()});form.append(label('Edit saved tournament',picker));
@@ -79,9 +83,10 @@ export function createEditor(auth,api) {
     }
     form.append(metadata,text('p','Choose existing player names to avoid accidental duplicate accounts. Leave game details empty if unknown.'));
     const names=document.createElement('datalist');names.id='editor-player-names';for(const p of base.players)names.append(new Option(p.name));form.append(names);
+    const characters=document.createElement('datalist');characters.id='editor-character-names';for(const name of characterNames)characters.append(new Option(name));form.append(characters);
     const cards=document.createElement('div');form.append(cards);
     for(const [index,m] of draft.matches.entries()){
-      const card=document.createElement('details');card.className='match-card';card.dataset.match=String(m.id);card.open=focusedMatch===m.id||(!focusedMatch&&index===draft.matches.length-1);
+      const card=document.createElement('details');card.className='match-card';card.dataset.match=String(m.id);card.dataset.key='set:'+m.id;card.open=focusedMatch===m.id||(!focusedMatch&&index===draft.matches.length-1);
       card.append(text('summary','Set '+m.order+' · '+(m.a||'Player 1')+' vs '+(m.b||'Player 2')+' · '+m.scoreA+'–'+m.scoreB));
       const fields=document.createElement('div');fields.className='editor-fields';
       fields.append(field('Set order',m.order,v=>m.order=Number(v),'number'));
@@ -89,10 +94,10 @@ export function createEditor(auth,api) {
       fields.append(field('Player 1 wins',m.scoreA,v=>m.scoreA=Number(v),'number'),field('Player 2 wins',m.scoreB,v=>m.scoreB=Number(v),'number'));card.append(fields);
       const games=document.createElement('div');
       for(const [i,g] of (m.games||[]).entries()){
-        const row=document.createElement('fieldset');row.append(text('legend','Game '+(i+1)));row.className='editor-fields';
+        const row=document.createElement('details');row.dataset.key='game:'+m.id+':'+i;row.open=true;row.append(text('summary','Game '+(i+1)));row.className='editor-fields editor-game';
         const stageOptions=['Unknown','Pokémon Stadium 2','Small Battlefield','Battlefield','Town and City','Smashville','Final Destination','Kalos Pokémon League','Hollow Bastion'];
         const stage=select(stageOptions.map(s=>[s,s]),g.stage||'Unknown');stage.addEventListener('change',()=>{g.stage=stage.value;changed()});row.append(label('Stage',stage));
-        row.append(field('Player 1 character',g.a,v=>g.a=v),field('Player 2 character',g.b,v=>g.b=v));
+        for(const [key,name] of [['a','Player 1 character'],['b','Player 2 character']]){const f=field(name,g[key],v=>g[key]=v);f.querySelector('input').setAttribute('list','editor-character-names');row.append(f)}
         const winner=select([['','Unknown'],['0',m.a||'Player 1'],['1',m.b||'Player 2']],g.winner===null?'':String(g.winner));winner.addEventListener('change',()=>{g.winner=winner.value===''?null:Number(winner.value);changed()});row.append(label('Game winner',winner));games.append(row);
       }
       card.append(games,button('Add / resize game details',()=>{const n=Number(m.scoreA)+Number(m.scoreB);if(!Number.isInteger(n)||n<2||n>5)throw Error('Enter the final set score first.');m.games=Array.from({length:n},(_,i)=>m.games?.[i]||{stage:'Unknown',a:'Unknown',b:'Unknown',winner:null});changed();render()}),button('Clear game details',()=>{m.games=[];changed();render()}));
@@ -129,6 +134,7 @@ export function createEditor(auth,api) {
         if(roomContext){try{await closeEditedRoom(roomContext,publication.source,reason.value);roomContext=null;status.textContent+=' Room closed.'}catch(e){status.textContent+=' Room not closed: '+e.message+' Refresh rooms before retrying.'}}
       }));status.textContent='Review the preview, then publish when correct.';
     }));
+    if(same){for(const e of form.querySelectorAll('details[data-key]'))if(opened.has(e.dataset.key))e.open=opened.get(e.dataset.key);window.scrollTo(0,scroll)}
   }
   const undoPanel=document.createElement('section');undoPanel.hidden=true;
   undoPanel.append(text('h3','Undo latest publication'),text('p','Owner only. Preview and restore the results from immediately before the latest organizer publication. Later edits cannot be overwritten. This does not reopen player rooms.'));

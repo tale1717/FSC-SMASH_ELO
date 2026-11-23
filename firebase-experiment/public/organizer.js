@@ -1,3 +1,4 @@
+import {createAliasManager} from './organizer-aliases.js';
 import { createOverview } from './organizer-overview.js';
 import { createEditor } from './organizer-editor.js';
 import { createLiveDashboard } from './organizer-matches.js';
@@ -35,6 +36,7 @@ async function start() {
     const live = createLiveDashboard(auth, api);
     const editor = createEditor(auth,api);
     const overview = createOverview(auth,api);
+    const aliases = createAliasManager(auth);
     await sdk.setPersistence(auth, sdk.browserSessionPersistence);
     const provider = new sdk.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -62,6 +64,7 @@ async function start() {
       live.reset();
       editor.reset();
       overview.reset();
+      aliases.reset();
       identity.hidden = true;
       uid.value = '';
       copyStatus.textContent = '';
@@ -94,6 +97,7 @@ async function start() {
         live.enable();
         editor.enable(data.role);
         overview.enable();
+        aliases.enable(data.role);
         uid.value = user.uid;
         $('organizer-account').textContent = user.email || 'Organizer account';
         status.textContent = data.role === 'owner' ? 'Owner access confirmed.' : 'Organizer access confirmed.';

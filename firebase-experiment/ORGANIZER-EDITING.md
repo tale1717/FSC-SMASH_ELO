@@ -41,3 +41,13 @@ Deploy Hosting and Firestore rules and update Cloudflare from `cloudflare-worker
 Filter saved sets by tournament, player, absent game reports, unknown stages, or unknown characters. Missing reports are listed separately from recorded games whose fields are unknown. **Edit this set** opens the exact set and preserves any previously open draft in this tab. Edits still require preview and publication. Completed room approvals and published edits update the overview locally.
 
 Deploy Hosting for this overview update. No additional Worker or rules deployment is needed.
+
+### Alias manager and phone editing
+
+The owner can load saved players, choose a main player and alternate tags, and preview a full chronological Elo replay. The preview combines attendance by tournament and preserves game characters, stages, and winners. Publishing requires a note, checks for newer publications, and backs up the previous snapshot. **Undo latest publication** also restores alias merges and their saved mapping. No players are merged until the owner publishes.
+
+Tags that played each other cannot be merged. Older snapshots with attendance not attributable to specific tournaments need attendance metadata before merging; an importer run now records that metadata. Do not guess attendance or add together overlapping counts. Saved alias mappings are reapplied after future imports and are also honored by manual result entry. A read-only importer preview does not connect to Firebase and therefore uses only repository aliases; publishing additionally applies the saved website mapping.
+
+On phones, player inputs offer saved-name suggestions and character inputs offer roster suggestions. Set and game sections collapse independently; their open state and scroll position survive game-detail resizing. Controls have larger touch targets.
+
+Pull the branch and deploy Hosting for this update. No Worker, rules, or database migration is required. The updated importer is used on its next GitHub run; no import is needed to deploy the UI.

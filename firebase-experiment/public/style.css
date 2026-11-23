@@ -109,3 +109,14 @@ select{display:block;padding:10px;margin-top:6px;max-width:100%;font:inherit;bac
 #results-editor button {margin:.5rem .5rem .5rem 0;}
 #results-editor fieldset {border:1px solid #41634e;border-radius:.5rem;}
 #results-editor table {margin:1rem 0;}
+
+#results-editor input,#results-editor select,#alias-manager input:not([type="checkbox"]),#alias-manager select{min-height:44px;font-size:16px;box-sizing:border-box;max-width:100%}
+#results-editor button,#alias-manager button{min-height:44px;white-space:normal}
+#results-editor .editor-game{padding:12px;border:1px solid #41634e;border-radius:8px;display:block}
+#results-editor .editor-game>label{margin:12px 0}
+#results-editor .editor-game>summary{font-weight:600}
+#alias-manager label{display:block;padding:8px 0;overflow-wrap:anywhere}
+#alias-manager input[type="checkbox"]{width:22px;height:22px;margin-right:12px;vertical-align:middle}
+#alias-manager table{table-layout:fixed;width:100%}
+#alias-manager td{overflow-wrap:anywhere}
+@media(max-width:600px){#results-editor .editor-fields{grid-template-columns:minmax(0,1fr)}#results-editor button,#alias-manager button{width:100%;margin:6px 0}#results-editor summary{overflow-wrap:anywhere}#alias-manager select,#alias-manager input:not([type="checkbox"]){width:100%}}

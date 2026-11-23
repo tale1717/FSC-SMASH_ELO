@@ -1,4 +1,9 @@
 export function prepareUndo(current, audit, backup, state) {
+  if(state?.kind==='aliases'){
+    if(state.revision!==current.revision||!backup||audit?.previousRevision!==backup.revision||backup.schema!==1||!Array.isArray(backup.players)||!Array.isArray(backup.matches)||!Array.isArray(backup.tournaments))throw Error('Incomplete alias undo record.');
+    const restored=structuredClone(backup);restored.revision=crypto.randomUUID();restored.updatedAt=new Date().toISOString();
+    return {kind:'aliases',expected:current.revision,dashboard:restored,note:audit.note,originalUpdatedAt:backup.updatedAt};
+  }
   if (!audit || !backup || !state || typeof state.slug !== 'string' || !Object.hasOwn(state,'previousOverride') || state.revision !== current.revision ||
       audit.previousRevision !== backup.revision || audit.tournament !== state.tournament ||
       backup.schema !== 1 || !Array.isArray(backup.players) || !Array.isArray(backup.matches) ||
@@ -30,6 +35,12 @@ export async function publishUndo(sdk,db,plan,uid,note) {
     const audit=await tx.get(sdk.doc(db,'organizerAudit',plan.expected));
     // Rebuild from saved records inside the transaction, not a browser-supplied snapshot.
     const checked=prepareUndo(current.data(),audit.exists()?audit.data():null,backup.exists()?backup.data():null,state.data());
+    if(checked.kind==='aliases'){
+      const restored={...checked.dashboard,revision:plan.dashboard.revision,updatedAt:plan.dashboard.updatedAt},revision=restored.revision;
+      tx.set(sdk.doc(db,'organizerBackups',revision),current.data());
+      tx.set(sdk.doc(db,'organizerUndo',revision),{revision,kind:'aliases',uid});
+      tx.set(sdk.doc(db,'organizerAudit',revision),{uid,action:'undo-aliases',note:note.trim().slice(0,500),previousRevision:plan.expected,updatedAt:restored.updatedAt});tx.set(ref,restored);return;
+    }
     const oldOverride=await tx.get(sdk.doc(db,'organizerOverrides',checked.slug));
     const restored={...checked.dashboard,revision:plan.dashboard.revision,updatedAt:plan.dashboard.updatedAt},revision=restored.revision;
     tx.set(sdk.doc(db,'organizerBackups',revision),current.data());

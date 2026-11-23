@@ -72,3 +72,16 @@ test('missing-detail filters distinguish absent reports from unknown fields',asy
  games[1].stage='Unknown';games[0].characters.b='Unknown';
  const result=missingDetails(data,m);assert.equal(result.stage,true);assert.equal(result.character,true);assert.equal(result.report,false);
 });
+
+test('alias merge replays opponents, unions attendance, preserves game identities and supports undo',async()=>{
+ const {previewAliasMerge,publishAliases}=await import('../public/alias-manager.js');
+ const {prepareUndo,publishUndo}=await import('../public/editor-history.js');
+ const base={schema:1,revision:'r1',updatedAt:'2026-11-01',tournaments:[{id:'t',slug:'one'}],players:[{id:'a',name:'Main',tournamentCount:1},{id:'b',name:'Alt',tournamentCount:1},{id:'c',name:'Other',tournamentCount:1}],matches:[{id:'m1',tournament:'t',winner:'a',loser:'c',winnerScore:2,loserScore:0},{id:'m2',tournament:'t',winner:'b',loser:'c',winnerScore:2,loserScore:0}],gameReports:[{match:'m2',tournament:'t',status:'confirmed',games:[1,2].map(number=>({number,stage:'PS2',winner:'b',characters:{b:'Mario',c:'Cloud'}}))}]};
+ const plan=previewAliasMerge(base,'a',['b']),p=plan.players.find(p=>p.id==='a');assert.equal(p.wins,2);assert.equal(p.tournamentCount,1);assert.equal(p.elo,1058);assert.equal(plan.matches[1].change,26);assert.equal(plan.gameReports[0].games[0].winner,'a');assert.equal(plan.gameReports[0].games[0].characters.a,'Mario');assert.equal(base.matches[1].winner,'b');
+ const store=new Map([['public/dashboard',base]]),snap=k=>({exists:()=>store.has(k),data:()=>structuredClone(store.get(k))});const sdk={doc:(_, ...p)=>p.join('/'),runTransaction:async(_,fn)=>{const writes=[];await fn({get:async k=>snap(k),set:(k,v)=>writes.push([k,v])});for(const [k,v] of writes)store.set(k,v)}};
+ await publishAliases(sdk,null,base,plan,'owner','Confirmed same player');
+ await assert.rejects(publishAliases(sdk,null,base,plan,'owner','stale'),/Results changed/);
+ const undo=prepareUndo(plan,store.get('organizerAudit/'+plan.revision),store.get('organizerBackups/'+plan.revision),store.get('organizerUndo/'+plan.revision));await publishUndo(sdk,null,undo,'owner','Restore separate players');assert.equal(store.get('public/dashboard').players.length,3);assert.equal(store.get('public/dashboard').aliases,undefined);
+ assert.throws(()=>previewAliasMerge(base,'a',['c']),/played each other/);
+ const incomplete=structuredClone(base);incomplete.players[1].tournamentCount=2;assert.throws(()=>previewAliasMerge(incomplete,'a',['b']),/Attendance/);
+});

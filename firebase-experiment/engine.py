@@ -174,6 +174,7 @@ def build(sources, aliases):
         events.append(dict(**event, sets=len(source['matches']), skipped=source['skipped']))
     for pid, record in players.items():
         record['tournamentCount'] = len(appearances[pid])
+        record['tournamentIds'] = sorted(appearances[pid])
     result = dict(schema=1, players=sorted(players.values(), key=lambda p: (-p['elo'], p['name'])),
                   tournaments=events, matches=history)
     validate_size(result)
