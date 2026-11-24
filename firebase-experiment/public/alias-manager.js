@@ -14,6 +14,7 @@ export function applyAliases(base,mapping){
   }
   const ratings=new Map(players.map(p=>[p.id,p]));
   for(const m of result.matches){m.winner=ids.get(m.winner);m.loser=ids.get(m.loser);if(m.winner===m.loser)throw Error('These tags played each other. Review that set before merging.');const w=ratings.get(m.winner),l=ratings.get(m.loser);const delta=Math.floor(64*(1-1/(1+10**((l.elo-w.elo)/400)))+.5);w.elo+=delta;l.elo-=delta;w.wins++;l.losses++;m.change=delta;}
+  for(const event of result.tournaments||[])if(event.placements){const places={};for(const [old,n] of Object.entries(event.placements)){const id=ids.get(old)||old;places[id]=Math.min(places[id]??n,n)}event.placements=places}
   for(const r of result.gameReports||[])for(const g of r.games||[]){g.winner=ids.get(g.winner)||g.winner;g.characters=Object.fromEntries(Object.entries(g.characters).map(([id,c])=>[ids.get(id)||id,c]));}
   result.players=players.sort((a,b)=>b.elo-a.elo||(a.name<b.name?-1:a.name>b.name?1:0));result.aliases={...mapping};
   result.revision=crypto.randomUUID();result.updatedAt=new Date().toISOString();

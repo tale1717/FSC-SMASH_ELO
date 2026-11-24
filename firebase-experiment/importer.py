@@ -16,6 +16,22 @@ from dynamic_aliases import apply_aliases
 PROJECT = 'fsc-smash-elo'
 
 
+def guard_finalized(previous, proposed, flags):
+    def sets(snapshot, tid):
+        return [(m['id'], m['winner'], m['loser'], m['winnerScore'], m['loserScore'])
+                for m in snapshot.get('matches', []) if m['tournament'] == tid]
+    def reports(snapshot, tid):
+        return {r['match']:r for r in snapshot.get('gameReports', []) if r['tournament'] == tid}
+    events = {t['slug']:t for t in proposed.get('tournaments', [])}
+    for event in previous.get('tournaments', []):
+        slug, tid = event['slug'], event['id']
+        if not flags.get(slug, slug == 'v3fgwg53'):
+            continue
+        other = events.get(slug)
+        if not other or sets(previous, tid) != sets(proposed, other['id']) or reports(previous, tid) != reports(proposed, other['id']):
+            raise ValueError('Saved results changed for finalized tournament '+slug+'. Reopen it before importing corrections.')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--publish', action='store_true')
@@ -76,6 +92,8 @@ def main():
         current = public.get(transaction=transaction)
         if (current.to_dict() or {}).get('revision') != previous_revision:
             raise ValueError('Another import published first. Rerun this workflow.')
+        status = db.document('public/tournamentStatus').get(transaction=transaction)
+        guard_finalized(current.to_dict() or {}, dashboard, (status.to_dict() or {}).get('events', {}))
         for eid, source in updates.items():
             transaction.set(db.document(f'importSources/{eid}'), source)
         transaction.set(public, dashboard)
@@ -116,6 +134,3 @@ if __name__ == '__main__':
                 if marker in message:
                     print(description, file=sys.stderr)
         sys.exit(1)
-
-
-

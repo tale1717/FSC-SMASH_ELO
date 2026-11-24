@@ -1,3 +1,4 @@
+import {assertOpen,changeStatus,isFinalized} from './tournament-status.js';
 import {characterNames} from './character-names.js';
 import { saveCloudDraft, listCloudDrafts, loadCloudDraft } from './cloud-drafts.js';
 import { readDashboard, text, cacheDashboard } from './common.js';
@@ -76,6 +77,18 @@ export function createEditor(auth,api) {
     const picker=select([['','Choose a tournament'],...base.tournaments.slice().reverse().map(t=>[t.id,t.name])],draft?.event.id||'');
     picker.addEventListener('change',()=>{if(!picker.value)return;draft=eventDraft(base,picker.value);roomContext=null;changed();render()});form.append(label('Edit saved tournament',picker));
     if(!draft)return;
+    const savedEvent=base.tournaments.find(t=>t.id===draft.event.id);
+    if(savedEvent){
+      const lifecycle=document.createElement('div');form.append(lifecycle);
+      lifecycle.append(button('Check tournament status',async current=>{
+        const slug=savedEvent.slug,{sdk,db}=await database(),snap=await sdk.getDoc(sdk.doc(db,'public','tournamentStatus'));if(current!==epoch)return;
+        const closed=isFinalized(snap.exists()?snap.data().events:{},slug);
+        lifecycle.replaceChildren(text('p',closed?'Finalized · Reopen to edit sets.':'Open · Finalizing locks saved sets and moves rooms to the archive.'));
+        lifecycle.append(button(closed?'Reopen tournament':'Finalize tournament',async current=>{
+          await changeStatus(sdk,db,slug,closed);if(current!==epoch)return;changed();render();status.textContent=closed?'Tournament reopened for corrections.':'Tournament finalized. Its rooms are now archived.';
+        }));
+      }));
+    }
     const metadata=document.createElement('div');metadata.className='editor-fields';
     metadata.append(field('Tournament name',draft.event.name,v=>draft.event.name=v),field('Tournament date',draft.event.started?.slice(0,10)||'',v=>{draft.event.started=v?v+'T12:00:00-05:00':'';draft.event.datePrecision='day'},'date'));
     if(!base.tournaments.some(t=>t.id===draft.event.id)){
@@ -122,6 +135,7 @@ export function createEditor(auth,api) {
         await sdk.runTransaction(db,async tx=>{
           const ref=sdk.doc(db,'public','dashboard'),snap=await tx.get(ref);
           if(!snap.exists()||snap.data().revision!==expected)throw Error('Results changed on another device. Save your draft, reload saved results, then review again.');
+          await assertOpen(tx,sdk,db,publication.source.event.slug);
           const priorOverride=await tx.get(sdk.doc(db,'organizerOverrides',publication.source.event.slug));
           const rev=publication.dashboard.revision;
           tx.set(sdk.doc(db,'organizerUndo',rev),{revision:rev,slug:publication.source.event.slug,tournament:publication.source.event.id,previousOverride:priorOverride.exists()?priorOverride.data():null,uid});

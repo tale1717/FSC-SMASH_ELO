@@ -1,4 +1,3 @@
-function finalizedTournament(t){return t?.slug==='v3fgwg53'||t?.url==='v3fgwg53'||(/^FSC\b/i.test(t?.name||'')&&/Bracket.*#\s*6\b/i.test(t.name));}
 export function createRoomDashboard(auth,api){
   const panel=document.createElement('section');panel.hidden=true;panel.id='room-panel';
   const title=document.createElement('h2');title.textContent='Shared match rooms';
@@ -15,7 +14,7 @@ export function createRoomDashboard(auth,api){
     values.forEach(({player,code})=>{const label=el('label',players[player].name+' — private code');const field=document.createElement('input');field.readOnly=true;field.value=code;field.setAttribute('aria-label',players[player].name+' private code');label.append(field);box.append(label)});
     box.append(el('p','Codes also appear beneath each player in the room card. Reissuing invalidates the old code.'));codes.append(box);
   }
-  async function load(current){const data=await call('/rooms'+(tournament?'?tournament='+encodeURIComponent(tournament.id):''));if(current!==epoch)return;data.rooms=data.rooms.filter(r=>r.state.phase!=='approved'&&!finalizedTournament(r.state.tournament)&&(!r.expiresAt||r.expiresAt>Date.now()));window.dispatchEvent(new CustomEvent('organizer-rooms-updated',{detail:{rooms:data.rooms,tournament}}));list.replaceChildren();status.textContent=data.rooms.length+' shared rooms loaded.';
+  async function load(current){const data=await call('/rooms'+(tournament?'?tournament='+encodeURIComponent(tournament.id):''));if(current!==epoch)return;data.rooms=data.rooms.filter(r=>r.state.phase!=='approved'&&(!r.expiresAt||r.expiresAt>Date.now()));window.dispatchEvent(new CustomEvent('organizer-rooms-updated',{detail:{rooms:data.rooms,tournament}}));list.replaceChildren();status.textContent=data.rooms.length+' shared rooms loaded.';
     for(const room of data.rooms){const s=room.state,card=document.createElement('article');card.className='match-card';card.dataset.room=room.id;card.append(el('h3',s.match.players.map(p=>p.name).join(' vs ')),el('p','Match '+s.match.identifier+' · '+s.phase+' · '+s.wins.join(' – ')+(s.isTest?' · TEST — excluded from Elo':'')));
       const people=document.createElement('div');people.className='room-players';
       s.match.players.forEach((p,i)=>{const block=el('div','');block.append(el('strong',p.name));const label=el('label','Private player code');const field=document.createElement('input');field.readOnly=true;field.value=room.codes?.[i]||'Reset once to display';field.setAttribute('aria-label',p.name+' private code');label.append(field);block.append(label);people.append(block)});card.append(people);

@@ -1,4 +1,3 @@
-function finalizedTournament(t){return t?.slug==='v3fgwg53'||t?.url==='v3fgwg53'||(/^FSC\b/i.test(t?.name||'')&&/Bracket.*#\s*6\b/i.test(t.name));}
 const API='https://fsc-smash-elo-api.dstalero71.workers.dev';
 const $=id=>document.getElementById(id),id=new URL(location.href).searchParams.get('room');
 const validId=/^[a-z0-9-]{36}$/.test(id||'');
@@ -12,7 +11,7 @@ function select(options,current=''){const s=document.createElement('select');s.a
 function art(stage,check=false){const span=document.createElement('span');span.className='space';const img=document.createElement('img');img.className='stage-image';img.alt=stage.name;img.src=stage.image;span.append(img);if(check){const tick=document.createElement('span');tick.className='stage-check';tick.setAttribute('aria-hidden','true');span.append(tick)}return span;}
 async function request(action){
   const response=await fetch(API+'/play/'+id+(!action&&view?'?since='+view.revision:''),{method:action?'POST':'GET',headers:{Authorization:'Bearer '+code,...(action?{'Content-Type':'application/json'}:{})},...(action?{body:JSON.stringify({...action,revision:view.revision})}:{}),signal:AbortSignal.timeout(15000)});
-  const data=await response.json();if(data.state&&finalizedTournament(data.state.tournament)){const e=new Error('This tournament is finalized. View its published results.');e.status=410;throw e}if(!response.ok){const e=new Error(data.error||'Could not load this match.');e.status=response.status;throw e}return data;
+  const data=await response.json();if(!response.ok){const e=new Error(data.error||'Could not load this match.');e.status=response.status;throw e}return data;
 }
 function apply(data){if(data.unchanged){idlePolls++;return}idlePolls=0;if(view&&view.revision>=data.revision&&view.actor===data.actor)return;view=data;selected.clear();render();}
 async function action(input){
@@ -80,7 +79,7 @@ async function loadLobby(){
     const response=await fetch(API+'/lobby',{signal:AbortSignal.timeout(15000)}),data=await response.json();
     if(!response.ok)throw new Error(data.error||'Could not load rooms.');
     if(!Array.isArray(data.rooms))throw new Error('Unexpected room response.');
-    data.rooms=data.rooms.filter(r=>!finalizedTournament(r.tournament));
+    
     const list=$('available-rooms');list.replaceChildren();const groups=new Map();
     for(const room of data.rooms){
       if(!/^[a-z0-9-]{36}$/.test(room.id))continue;
@@ -96,5 +95,3 @@ async function loadLobby(){
 $('reload-rooms').addEventListener('click',loadLobby);
 if(!validId){$('join-form').hidden=true;$('room-picker').hidden=false;$('match-title').textContent='Choose your match';loadLobby();}
 else{$('back-to-rooms').hidden=false;if(code)poll();}
-
-

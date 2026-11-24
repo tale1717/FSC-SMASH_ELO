@@ -104,3 +104,13 @@ test('archive is authenticated, excludes active rooms and never exposes codes or
  assert.equal((await handle(request('/rooms?archive=1&cursor='+btoa('null')),f.env,fetcher)).status,400);
  }finally{f.sqlite.close()}
 });
+
+test('finalized event blocks player and organizer writes, archives rooms and can reopen',async()=>{
+ const f=fixture();try{const {room,codes}=await f.create();f.flags['test-slug']=true;
+ assert.equal((await f.send('/play/'+room.id,{action:'join',revision:0},codes[0])).status,410);
+ assert.equal((await f.send('/rooms/'+room.id,{action:'reissue',player:0,revision:0})).status,410);
+ assert.equal((await(await f.send('/lobby')).json()).rooms.length,0);
+ assert.equal((await(await f.send('/rooms?archive=1')).json()).rooms[0].id,room.id);
+ f.flags['test-slug']=false;assert.equal((await f.send('/play/'+room.id,{action:'join',revision:0},codes[0])).status,200);
+ }finally{f.sqlite.close()}
+});

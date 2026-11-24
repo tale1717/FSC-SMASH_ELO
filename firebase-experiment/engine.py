@@ -116,7 +116,8 @@ def normalize(event, participants, matches):
     sets.sort(key=lambda m: (m['order'], int(m['id'])))
     if not sets:
         raise ValueError('Completed tournament has no usable sets; review before publication')
-    return dict(event=event, participants=list(people.values()), matches=sets, skipped=skipped)
+    placements = {p['name'].strip():p['final_rank'] for p in participants if type(p.get('final_rank')) is int and p['final_rank'] > 0}
+    return dict(event=event, participants=list(people.values()), matches=sets, skipped=skipped, **({'placements':placements} if placements else {}))
 
 
 def change(winner_elo, loser_elo):
@@ -171,6 +172,8 @@ def build(sources, aliases):
             l['losses'] += 1
             history.append(dict(id=match['id'], tournament=event['id'], winner=w['id'], loser=l['id'],
                                 winnerScore=match['winnerScore'], loserScore=match['loserScore'], change=delta))
+        if source.get('placements'):
+            event = dict(event, placements={player(name)['id']:rank for name,rank in source['placements'].items()})
         events.append(dict(**event, sets=len(source['matches']), skipped=source['skipped']))
     for pid, record in players.items():
         record['tournamentCount'] = len(appearances[pid])
@@ -179,5 +182,3 @@ def build(sources, aliases):
                   tournaments=events, matches=history)
     validate_size(result)
     return result
-
-

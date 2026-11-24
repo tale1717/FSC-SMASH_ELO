@@ -22,6 +22,14 @@ service cloud.firestore {
       allow create, update: if editor() && request.auth.uid == uid
         && request.resource.data.uid == uid && request.resource.data.items is map;
     }
+    function openTournament(slug) {
+      let path = /databases/$(database)/documents/public/tournamentStatus;
+      return exists(path) ? get(path).data.events.get(slug, slug == 'v3fgwg53') == false : slug != 'v3fgwg53';
+    }
+    match /public/tournamentStatus {
+      allow get: if true;
+      allow create, update: if editor() && request.resource.data.keys().hasOnly(['events']) && request.resource.data.events is map;
+    }
     match /public/dashboard {
       allow get: if true;
       allow update: if editor() && request.resource.data.schema == 1
@@ -31,8 +39,8 @@ service cloud.firestore {
     }
     match /organizerOverrides/{slug} {
       allow read: if editor();
-      allow delete: if owner();
-      allow create, update: if editor() && request.resource.data.source.event.slug == slug
+      allow delete: if owner() && openTournament(slug);
+      allow create, update: if editor() && openTournament(slug) && request.resource.data.source.event.slug == slug
         && request.resource.data.updatedBy == request.auth.uid;
     }
     match /organizerUndo/{revision} {

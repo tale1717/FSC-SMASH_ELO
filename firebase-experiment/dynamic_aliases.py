@@ -50,6 +50,13 @@ def apply_aliases(base, mapping):
         w['wins'] += 1
         l['losses'] += 1
         m['change'] = delta
+    for event in result.get('tournaments',[]):
+        if 'placements' in event:
+            places = {}
+            for old, place in event['placements'].items():
+                pid = ids.get(old,old)
+                places[pid] = min(places.get(pid,place),place)
+            event['placements'] = places
     for r in result.get('gameReports',[]):
         for g in r.get('games',[]):
             g['winner'] = ids.get(g['winner'],g['winner'])

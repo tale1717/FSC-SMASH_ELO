@@ -85,3 +85,15 @@ test('alias merge replays opponents, unions attendance, preserves game identitie
  assert.throws(()=>previewAliasMerge(base,'a',['c']),/played each other/);
  const incomplete=structuredClone(base);incomplete.players[1].tournamentCount=2;assert.throws(()=>previewAliasMerge(incomplete,'a',['b']),/Attendance/);
 });
+
+test('Elo progression uses published deltas and includes attendance without a set',async()=>{
+ const {eloProgress}=await import('../public/elo-progress.js');
+ const data={players:[{id:'p',tournamentIds:['a','b','c']}],tournaments:[{id:'a',name:'A',placements:{p:3}},{id:'b',name:'B'},{id:'c',name:'C'}],matches:[{tournament:'a',winner:'p',loser:'o',change:32},{tournament:'b',winner:'o',loser:'p',change:38}]};
+ assert.deepEqual(eloProgress(data,'p').map(x=>[x.elo,x.wins,x.losses,x.place]),[[1032,1,0,3],[994,0,1,null],[994,0,0,null]]);
+});
+test('status transitions reject stale toggles and enforce the legacy closure',async()=>{
+ const {changeStatus,assertOpen}=await import('../public/tournament-status.js');let value;
+ const tx={get:async()=>({exists:()=>!!value,data:()=>value}),set:(_,v)=>value=v},sdk={doc:()=>0,runTransaction:(_,fn)=>fn(tx)};
+ await assert.rejects(assertOpen(tx,sdk,null,'v3fgwg53'),/finalized/);await changeStatus(sdk,null,'v3fgwg53',true);await assertOpen(tx,sdk,null,'v3fgwg53');
+ await changeStatus(sdk,null,'other',false);await assert.rejects(changeStatus(sdk,null,'other',false),/changed/);await assert.rejects(assertOpen(tx,sdk,null,'other'),/finalized/);
+});

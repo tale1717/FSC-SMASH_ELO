@@ -18,7 +18,9 @@ export function fixture(){
   };
   const env={MATCH_DB:db,FIREBASE_WEB_API_KEY:'test',OWNER_UID:'owner',CHALLONGE_API_KEY:'test-challonge'};
   const now=Date.now()/1000;const token='x.'+Buffer.from(JSON.stringify({aud:'fsc-smash-elo',iss:'https://securetoken.google.com/fsc-smash-elo',sub:'owner',iat:now-10,exp:now+3600,auth_time:now-10,firebase:{sign_in_provider:'google.com'}})).toString('base64url')+'.x';
+  const flags={};
   const upstream=async(url,options)=>{
+    if(url.startsWith('https://firestore.googleapis.com/'))return Response.json({fields:{events:{mapValue:{fields:Object.fromEntries(Object.entries(flags).map(([k,v])=>[k,{booleanValue:v}]))}}}});
     if(url.includes('identitytoolkit'))return Response.json({users:[{localId:'owner'}]});
     if(options.method!=='GET')throw Error('Unexpected Challonge write');const u=new URL(url);let data=[];
     if(u.searchParams.get('page')==='1'){
@@ -29,5 +31,5 @@ export function fixture(){
   };
   const send=async(path,body,bearer=token)=>handle(new Request('https://api.example'+path,{method:body?'POST':'GET',headers:{Origin:'https://fsc-smash-elo.web.app',Authorization:'Bearer '+bearer,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}),env,upstream);
   const create=async(match='50')=>{const r=await send('/rooms',{tournament:'123',match,bestOf:3});if(r.status!==201)throw Error(JSON.stringify(await r.json()));return r.json()};
-  return {env,token,upstream,send,create,sqlite};
+  return {flags,env,token,upstream,send,create,sqlite};
 }

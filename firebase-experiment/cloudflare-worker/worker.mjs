@@ -1,4 +1,20 @@
-function finalizedTournament(t){return t?.slug==='v3fgwg53'||t?.url==='v3fgwg53'||(/^FSC\b/i.test(t?.name||'')&&/Bracket.*#\s*6\b/i.test(t.name));}
+const statusCache=new WeakMap();
+async function tournamentFlags(env,fetcher,fresh=false){
+  const cached=statusCache.get(env);if(!fresh&&cached&&Date.now()-cached.time<15000)return cached.flags;
+  const response=await fetcher('https://firestore.googleapis.com/v1/projects/fsc-smash-elo/databases/(default)/documents/public/tournamentStatus?key='+encodeURIComponent(env.FIREBASE_WEB_API_KEY),{method:'GET',signal:AbortSignal.timeout(8000)});
+  const flags=Object.create(null);
+  if(response.status!==404){
+    if(!response.ok)throw new RoomError('Cannot verify tournament status. Try again shortly.',503);
+    const body=await response.json(),map=body.fields?.events?.mapValue;if(!map)throw new RoomError('Invalid tournament status.',503);
+    for(const [key,v] of Object.entries(map.fields||{})){if(typeof v.booleanValue!=='boolean')throw new RoomError('Invalid tournament status.',503);flags[key]=v.booleanValue}
+  }
+  statusCache.set(env,{flags,time:Date.now()});return flags;
+}
+function finalizedTournament(t,flags){
+  const slug=t?.slug||t?.url?.replace(/\/$/,'').split('/').pop();
+  if(slug&&Object.hasOwn(flags,slug))return flags[slug];
+  return slug==='v3fgwg53'||(!slug&&/^FSC Fall Bracket #6$/i.test(t?.name||''));
+}
 const PROJECT = 'fsc-smash-elo';
 const ORIGINS = new Set(['https://fsc-smash-elo.web.app', 'https://fsc-smash-elo.firebaseapp.com']);
 
@@ -24,8 +40,8 @@ export async function handle(request, env, fetcher = fetch) {
     } });
   }
   if (!['GET', 'POST'].includes(request.method)) return reply(405, { error: 'Method not allowed' });
-  if (path === '/lobby') return roomSafe(() => publicLobby(request, env, reply), reply);
-  if (path.startsWith('/play/')) return roomSafe(() => playerRoom(request, env, path.split('/')[2], reply), reply);
+  if (path === '/lobby') return roomSafe(() => publicLobby(request, env, reply,fetcher), reply);
+  if (path.startsWith('/play/')) return roomSafe(() => playerRoom(request, env, path.split('/')[2], reply,fetcher), reply);
   if (request.method === 'POST' && !path.startsWith('/rooms')) return reply(405, { error: 'Method not allowed' });
   if (path === '/') return reply(200, { service: 'FSC Smash Elo organizer API', status: 'ready' });
   if (!['/me', '/tournaments', '/matches', '/rooms', '/lobby'].includes(path) && !/^\/(?:play|rooms)\/[a-z0-9-]+$/.test(path)) return reply(404, { error: 'Not found' });
@@ -237,13 +253,14 @@ function newCode(){
 async function distinctCode(room,...otherHashes){
   let code;do{code=newCode()}while(otherHashes.includes(await codeHash(room,code)));return code;
 }
-async function publicLobby(request,env,reply){
+async function publicLobby(request,env,reply,fetcher){
   requireRoom(request.method==='GET','Method not allowed.',405);
   const rows=await database(env).prepare('SELECT id,state,created_at FROM match_rooms WHERE expires_at > ? ORDER BY created_at DESC LIMIT 300').bind(Date.now()).all();
   // Publish only the information needed to identify a set, never codes or private room state.
+  const flags=rows.results.length?await tournamentFlags(env,fetcher):{};
   const rooms=rows.results.flatMap(row=>{
     const s=JSON.parse(row.state);
-    if(s.phase==='approved'||finalizedTournament(s.tournament))return [];
+    if(s.phase==='approved'||finalizedTournament(s.tournament,flags))return [];
     return [{id:row.id,tournament:{id:s.tournament.id,name:s.tournament.name},match:{identifier:s.match.identifier,players:s.match.players.map(p=>({name:p.name}))},bestOf:s.bestOf,isTest:s.isTest===true}];
   });
   return reply(200,{rooms});
@@ -305,10 +322,11 @@ async function saveRoom(db,row,state){
   const result=await db.prepare('UPDATE match_rooms SET state = ?, revision = revision + 1 WHERE id = ? AND revision = ?').bind(JSON.stringify(state),row.id,row.revision).run();
   requireRoom(result.meta.changes===1,'The match changed on another device. Refresh and try again.');return {...row,state:JSON.stringify(state),revision:row.revision+1};
 }
-async function playerRoom(request,env,id,reply){
-  const db=database(env),row=await getRoom(db,id);requireRoom(!finalizedTournament(JSON.parse(row.state).tournament),'This tournament is finalized. View its published results.',410);requireRoom(Date.now()<row.expires_at,'This room expired. Contact the TO.',410);
+async function playerRoom(request,env,id,reply,fetcher){
+  const db=database(env),row=await getRoom(db,id);requireRoom(Date.now()<row.expires_at,'This room expired. Contact the TO.',410);
   const code=(request.headers.get('Authorization')||'').replace(/^Bearer /,'');requireRoom(/^(?:[0-9]{6}|[a-f0-9]{24})$/i.test(code),'Enter your private player code.',401);
   const hash=await codeHash(id,code),actor=hash===row.code_a?0:hash===row.code_b?1:null;requireRoom(actor!==null,'Incorrect player code.',403);
+  requireRoom(!finalizedTournament(JSON.parse(row.state).tournament,await tournamentFlags(env,fetcher,request.method==='POST')),'This tournament is finalized. View its published results.',410);
   if(request.method==='GET'){if(new URL(request.url).searchParams.get('since')===String(row.revision))return reply(200,{unchanged:true,revision:row.revision});return reply(200,publicRoom(row,actor));}
   requireRoom(request.method==='POST','Method not allowed.',405);const body=await roomBody(request);requireRoom(body.revision===row.revision,'The match changed. Refresh before acting.');
   return reply(200,publicRoom(await saveRoom(db,row,reduceRoom(JSON.parse(row.state),actor,body)),actor));
@@ -317,8 +335,8 @@ async function organizerRooms(request,env,fetcher,uid,reply){
   const db=database(env),url=new URL(request.url),parts=url.pathname.split('/');
   if(parts[2]){
     const row=await getRoom(db,parts[2]);
+    requireRoom(!finalizedTournament(JSON.parse(row.state).tournament,await tournamentFlags(env,fetcher,request.method!=='GET')),'This tournament is finalized. Its rooms are archived.',410);
     if(request.method==='GET')return reply(200,organizerRoom(row));
-    requireRoom(!finalizedTournament(JSON.parse(row.state).tournament),'This tournament is finalized. Its rooms are archived.',410);
     const input=await roomBody(request);requireRoom(input.revision===row.revision,'The room changed. Refresh before acting.');const state=JSON.parse(row.state);
     if(input.action==='organizer-result'){
       requireRoom(state.phase!=='approved','This room is already approved.');
@@ -346,14 +364,16 @@ async function organizerRooms(request,env,fetcher,uid,reply){
     if(raw){try{cursor=JSON.parse(atob(raw))}catch{throw new RoomError('Invalid archive cursor.',400)}requireRoom(cursor&&Number.isSafeInteger(cursor.time)&&/^[a-z0-9-]{36}$/.test(cursor.id),'Invalid archive cursor.',400)}
     const rows=cursor?await db.prepare('SELECT * FROM match_rooms WHERE created_at < ? OR (created_at = ? AND id < ?) ORDER BY created_at DESC, id DESC LIMIT 51').bind(cursor.time,cursor.time,cursor.id).all():await db.prepare('SELECT * FROM match_rooms ORDER BY created_at DESC, id DESC LIMIT 51').bind().all();
     const page=rows.results.slice(0,50),last=page.at(-1);
-    const rooms=page.filter(r=>{const s=JSON.parse(r.state);return s.phase==='approved'||r.expires_at<=Date.now()||finalizedTournament(s.tournament)}).map(r=>({...publicRoom(r),createdAt:r.created_at}));
+    const flags=page.length?await tournamentFlags(env,fetcher):{};
+    const rooms=page.filter(r=>{const s=JSON.parse(r.state);return s.phase==='approved'||r.expires_at<=Date.now()||finalizedTournament(s.tournament,flags)}).map(r=>({...publicRoom(r),createdAt:r.created_at}));
     return reply(200,{rooms,next:rows.results.length>50?btoa(JSON.stringify({time:last.created_at,id:last.id})):null});
   }
   if(request.method==='GET'){
     const tournament=url.searchParams.get('tournament');
     requireRoom(!tournament||/^[a-zA-Z0-9:-]+$/.test(tournament),'Invalid tournament.',400);
     const rows=await db.prepare(tournament?'SELECT * FROM match_rooms WHERE tournament_id = ? ORDER BY created_at DESC LIMIT 300':'SELECT * FROM match_rooms WHERE expires_at > ? ORDER BY created_at DESC LIMIT 300').bind(tournament||Date.now()).all();
-    return reply(200,{rooms:rows.results.filter(r=>r.expires_at>Date.now()&&JSON.parse(r.state).phase!=='approved'&&!finalizedTournament(JSON.parse(r.state).tournament)).map(r=>organizerRoom(r))});
+    const flags=rows.results.length?await tournamentFlags(env,fetcher):{};
+    return reply(200,{rooms:rows.results.filter(r=>r.expires_at>Date.now()&&JSON.parse(r.state).phase!=='approved'&&!finalizedTournament(JSON.parse(r.state).tournament,flags)).map(r=>organizerRoom(r))});
   }
   const input=await roomBody(request);requireRoom(/^\d+$/.test(input.tournament||'')&&/^\d+$/.test(input.match||'')&&[3,5].includes(input.bestOf),'Choose a match and best-of 3 or 5.',400);
   const key=(env.CHALLONGE_API_KEY||'').trim();requireRoom(key&&!/[^\x21-\x7e]/.test(key),'Configure the Challonge API key.',503);
@@ -362,6 +382,7 @@ async function organizerRooms(request,env,fetcher,uid,reply){
   const people=await collection('tournaments/'+event.id+'/participants','participant',key,fetcher,signal);
   const matches=await collection('tournaments/'+event.id+'/matches','match',key,fetcher,signal);
   const match=openMatches(matches,people).matches.find(m=>m.id===input.match);requireRoom(match,'This set is no longer open. Refresh the list.');
+  requireRoom(!finalizedTournament(event,await tournamentFlags(env,fetcher,true)),'This tournament is finalized.',410);
   const id=crypto.randomUUID(),first=newCode(),firstHash=await codeHash(id,first);
   const codes=[first,await distinctCode(id,firstHash)],hashes=await Promise.all(codes.map(c=>codeHash(id,c))),state=initialRoom(event,match,input.bestOf),now=Date.now();
   state._codes=codes;

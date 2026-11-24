@@ -93,7 +93,7 @@ def tournaments(key):
 
 
 def participants(eid, key):
-    return [dict(id=r['id'], name=r['attributes']['name'])
+    return [dict(id=r['id'], name=r['attributes']['name'], **({'final_rank':r['attributes']['final_rank']} if r['attributes'].get('final_rank') else {}))
             for r in collection(f'tournaments/{eid}/participants', key, 'participant')]
 
 

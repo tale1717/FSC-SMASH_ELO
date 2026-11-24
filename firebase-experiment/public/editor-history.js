@@ -1,3 +1,4 @@
+import {assertOpen} from './tournament-status.js';
 export function prepareUndo(current, audit, backup, state) {
   if(state?.kind==='aliases'){
     if(state.revision!==current.revision||!backup||audit?.previousRevision!==backup.revision||backup.schema!==1||!Array.isArray(backup.players)||!Array.isArray(backup.matches)||!Array.isArray(backup.tournaments))throw Error('Incomplete alias undo record.');
@@ -41,6 +42,7 @@ export async function publishUndo(sdk,db,plan,uid,note) {
       tx.set(sdk.doc(db,'organizerUndo',revision),{revision,kind:'aliases',uid});
       tx.set(sdk.doc(db,'organizerAudit',revision),{uid,action:'undo-aliases',note:note.trim().slice(0,500),previousRevision:plan.expected,updatedAt:restored.updatedAt});tx.set(ref,restored);return;
     }
+    await assertOpen(tx,sdk,db,checked.slug);
     const oldOverride=await tx.get(sdk.doc(db,'organizerOverrides',checked.slug));
     const restored={...checked.dashboard,revision:plan.dashboard.revision,updatedAt:plan.dashboard.updatedAt},revision=restored.revision;
     tx.set(sdk.doc(db,'organizerBackups',revision),current.data());

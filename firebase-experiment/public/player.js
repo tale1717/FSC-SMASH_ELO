@@ -1,3 +1,4 @@
+import {showProgress} from './elo-progress.js';
 import { rankedPlayers, isQualified, tournamentCount } from './eligibility.js';
 import { renderStats } from './player-stats.js';
 import { setUrl, playerGames } from './game-records.js';
@@ -61,7 +62,7 @@ async function load() {
   const id = new URLSearchParams(location.search).get('id');
   if (!id) { $('status').textContent = 'Choose a player from the rankings to view their records.'; return; }
   try {
-    const data = withReviewedHistory(await readDashboard());
+    const snapshot=await readDashboard(),data=withReviewedHistory(snapshot);
     if (!data) { $('status').textContent = 'No tournaments have been imported yet.'; return; }
     const player = data.players.find(person => person.id === id);
     if (!player) { $('status').textContent = 'Player not found. Their tag may have been merged or changed. Return to rankings to find their current profile.'; return; }
@@ -85,6 +86,7 @@ async function load() {
     events.forEach((event, index) => $('event-history').append(eventBlock(event,
       matches.filter(match => match.tournament === event.id), player, players, index === 0)));
     if (!events.length) $('event-history').append(text('p', 'No completed sets yet.'));
+    showProgress($('elo-progress'),snapshot,id);
     renderStats(data, player);
     const recordedGames = playerGames(data, id);
     const records = headToHead(matches, id);
