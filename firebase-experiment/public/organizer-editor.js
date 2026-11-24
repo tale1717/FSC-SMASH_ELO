@@ -1,3 +1,4 @@
+import {recordedPlaces,entrants,savePlaces} from './placements.js';
 import {assertOpen,changeStatus,isFinalized} from './tournament-status.js';
 import {characterNames} from './character-names.js';
 import { saveCloudDraft, listCloudDrafts, loadCloudDraft } from './cloud-drafts.js';
@@ -79,6 +80,17 @@ export function createEditor(auth,api) {
     if(!draft)return;
     const savedEvent=base.tournaments.find(t=>t.id===draft.event.id);
     if(savedEvent){
+      const details=document.createElement('details');details.append(text('summary','Edit final placements'));form.append(details);
+      details.addEventListener('toggle',()=>{if(!details.open||details.children.length>1)return;
+        details.append(text('p','Enter the bracket finish for each player. Ties share a number; leave unknown places blank. This saves only placements.'));
+        const fields=new Map(),places=recordedPlaces(base,savedEvent);
+        for(const p of entrants(base,savedEvent)){const i=input(places[p.id]??'','number');i.min='1';i.step='1';fields.set(p.id,i);details.append(label('Place: '+p.name,i))}
+        details.append(button('Save placements only',async current=>{
+          const {sdk,db}=await database(),next=await savePlaces(sdk,db,base,savedEvent.slug,Object.fromEntries([...fields].map(([id,i])=>[id,i.value])),auth.currentUser.uid);
+          if(current!==epoch)return;base=next;draft.event.placements={...base.tournaments.find(t=>t.slug===savedEvent.slug).placements};draft.event.placementsEdited=true;
+          cacheDashboard(base);announce();changed();render();status.textContent='Placements saved. Elo, set records, and attendance are unchanged.';
+        }));
+      });
       const lifecycle=document.createElement('div');form.append(lifecycle);
       lifecycle.append(button('Check tournament status',async current=>{
         const slug=savedEvent.slug,{sdk,db}=await database(),snap=await sdk.getDoc(sdk.doc(db,'public','tournamentStatus'));if(current!==epoch)return;

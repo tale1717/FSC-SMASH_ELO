@@ -293,5 +293,24 @@
       "loserScore": 2
     }
   ],
-  "skipped": 0
+  "skipped": 0,
+  "placements": {
+    "SMT": 1,
+    "Thomas": 2,
+    "Never": 3,
+    "Alucard": 4,
+    "MVQ": 5,
+    "Pupusa": 5,
+    "Tanuki": 7,
+    "Zander": 7,
+    "CoveredinRice": 9,
+    "Ethanmagoo": 9,
+    "Lavolon": 9,
+    "Tal_Dave": 9,
+    "Big Ant": 13,
+    "ItsChris457": 13,
+    "No?": 13,
+    "Photaru": 13,
+    "Frostmeiser": 17
+  }
 }

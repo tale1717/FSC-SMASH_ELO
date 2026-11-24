@@ -1,10 +1,12 @@
+import {recordedPlaces} from './placements.js';
 export function eloProgress(data,id){
   let elo=1000;const rows=[],player=data.players.find(p=>p.id===id);
   for(const event of data.tournaments){
     const sets=data.matches.filter(m=>m.tournament===event.id&&(m.winner===id||m.loser===id));
-    if(!sets.length&&!player?.tournamentIds?.includes(event.id))continue;
+    const place=recordedPlaces(data,event)[id]??null;
+    if(!sets.length&&!player?.tournamentIds?.includes(event.id)&&place===null)continue;
     let wins=0,delta=0;for(const m of sets){if(!Number.isFinite(m.change))return [];const won=m.winner===id;wins+=Number(won);delta+=(won?1:-1)*m.change;}
-    elo+=delta;rows.push({name:event.name,wins,losses:sets.length-wins,elo,delta,place:event.placements?.[id]??null});
+    elo+=delta;rows.push({name:event.name,wins,losses:sets.length-wins,elo,delta,place});
   }return rows;
 }
 export function showProgress(parent,data,id){

@@ -97,3 +97,12 @@ test('status transitions reject stale toggles and enforce the legacy closure',as
  await assert.rejects(assertOpen(tx,sdk,null,'v3fgwg53'),/finalized/);await changeStatus(sdk,null,'v3fgwg53',true);await assertOpen(tx,sdk,null,'v3fgwg53');
  await changeStatus(sdk,null,'other',false);await assert.rejects(changeStatus(sdk,null,'other',false),/changed/);await assert.rejects(assertOpen(tx,sdk,null,'other'),/finalized/);
 });
+
+test('placement-only saves support ties and blanks without altering Elo, attendance or sets',async()=>{
+ const {withPlacements,recordedPlaces}=await import('../public/placements.js');
+ const data=structuredClone(base),result=withPlacements(data,'one',{a:2,b:2});
+ assert.deepEqual(result.tournaments[0].placements,{a:2,b:2});for(const key of ['players','matches','gameReports'])assert.deepEqual(result[key],data[key]);
+ assert.deepEqual(withPlacements(result,'one',{a:'',b:2}).tournaments[0].placements,{b:2});
+ assert.throws(()=>withPlacements(data,'one',{a:1.5}),/whole/);
+ const historical={slug:'v3fgwg53'};assert.deepEqual(recordedPlaces({players:[{name:'SMT',id:'s'},{name:'MVQ',id:'m'},{name:'Pupusa',id:'p'}]},historical),{s:1,m:5,p:5});
+});

@@ -78,6 +78,10 @@ def main():
     overrides = [doc.to_dict() for doc in db.collection('organizerOverrides').stream()]
     dashboard = apply_overrides(dashboard, overrides, aliases, include_manual(sources))
     dashboard = apply_aliases(dashboard, (old.to_dict() or {}).get('aliases', {}))
+    saved_places = {e['slug']:e.get('placements', {}) for e in (old.to_dict() or {}).get('tournaments', []) if e.get('placementsEdited')}
+    for event in dashboard['tournaments']:
+        if event['slug'] in saved_places:
+            event.update(placements=saved_places[event['slug']], placementsEdited=True)
     if old.exists and all(old.to_dict().get(k) == v for k, v in dashboard.items()) and not updates:
         print('Already current. No rating changes or writes.')
         return

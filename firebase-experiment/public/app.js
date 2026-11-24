@@ -1,3 +1,4 @@
+import {recordedPlaces,entrants} from './placements.js';
 import { coverageLabel } from './game-records.js';
 import { rankedPlayers, tournamentCount, eligibilityLabel, isQualified } from './eligibility.js';
 import { $, text, characterIcon, playerUrl, readDashboard, eventDate } from './common.js';
@@ -100,6 +101,13 @@ async function load() {
       link.target = '_blank'; link.rel = 'noopener noreferrer';
       item.append(link, document.createTextNode(` · ${event.sets} sets · ${eventDate(event.started)}`));
       item.append(text('p',coverageLabel(data,data.matches.filter(m=>m.tournament===event.id))));
+      const details=document.createElement('details');details.append(text('summary','Final placements'));item.append(details);
+      details.addEventListener('toggle',()=>{if(!details.open||details.children.length>1)return;
+        const places=recordedPlaces(data,event),table=document.createElement('table'),head=document.createElement('tr');
+        head.append(text('th','Place'),text('th','Player'));table.append(head);
+        for(const p of entrants(data,event)){const row=document.createElement('tr');row.append(text('td',places[p.id]??'—'),text('td',p.name));table.append(row)}
+        details.append(table,text('p','Tied players share a place. A dash means the finish has not been recorded.'));
+      });
       $('tournaments').append(item);
     }
   } catch {
