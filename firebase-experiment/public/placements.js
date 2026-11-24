@@ -1,14 +1,18 @@
 import {assertOpen} from './tournament-status.js';
 
 const historical={
+  "3gee2mio":[["Ethanmagoo"],["SoulArts"],["Wildogz"],["Thomas"],["Rexcoji","SMT"],["Alucard","Lavolon"],["Photaru","Sernite","Tanuki","Zander"],["ItsChris457","Negative__","Riblet","XENO"],["Beans","Coolkid","Rengokublacksayin","stigztoomuch"]],
+  "ezus0cc3":[["Wildogz"],["Thomas"],["Louie"],["SMT"],["Jermball","Never"],["Alucard","Tanuki"],["Pupusa","SUNGODXENO","Zander","Zenon."],["ItsChris457","Lavolon","Redline11","Tal_Dave"],["Cdj52","Cosmos","Daddystigz","Frostmeiser","niz_640","Urzangaming","Ethanmagoo","YouGotMail"],["Chelo","Coderedkeanu"]],
+  "knpl9s22":[["Wildogz"],["Louie"],["VB3"],["Thomas"],["Nation","Ethanmagoo"],["Alucard","Never"],["Novajax64","Rexcoji","Tal_Dave","Zander"],["ItsChris457","Tanuki","Urzan6770","YorkNew"],["Big Ant","Cdj52","Feretsumaoku","Lavolon","Pupusa","Redline11","Riblet","Sernite"],["davicobrian2024","Frostmeiser","Niz_640","Quonton","SUNGODXENO","Zenon."]],
+  "n7qul9qt":[["Ethanmagoo"],["Wildogz"],["Thomas"],["Louie"],["Alucard","SMT"],["Jermball","Never"],["CoveredinRice","Pupusa","Tal_Dave","Zander"],["Frostmeiser","No?","Tanuki","Z3non"],["Beans","ItsChris457","Lavolon"]],
   v3fgwg53:[['SMT'],['Thomas'],['Never'],['Alucard'],['MVQ','Pupusa'],['Tanuki','Zander'],['CoveredinRice','Ethanmagoo','Lavolon','Tal_Dave'],['Big Ant','ItsChris457','No?','Photaru'],['Frostmeiser']],
   yt30nf6m:[['Wildogz'],['Louie'],['Thomas'],['Pupusa'],['Ethanmagoo','Never'],['Alucard','Tal_Dave'],['Zander','Tanuki','Lavolon','Photaru'],['Smidiot','ItsChris457','Big Ant','Frostmeiser']]
 };
 export function recordedPlaces(data,event){
-  const places={};let n=1;const byName=new Map(data.players.map(p=>[(p.name||p.id).toLowerCase(),p.id]));
+  const places={};let n=1;const exactName=new Map(data.players.map(p=>[p.name||p.id,p.id]));const byName=new Map(data.players.map(p=>[(p.name||p.id).toLowerCase(),p.id]));
   if(!event.placementsEdited)for(const group of historical[event.slug]||[]){
     for(let name of group){const seen=new Set();while(data.aliases?.[name]&&!seen.has(name)){seen.add(name);name=data.aliases[name]}
-      const id=byName.get(name.toLowerCase());if(id)places[id]=Math.min(n,places[id]??n);}
+      const id=exactName.get(name)??byName.get(name.toLowerCase());if(id)places[id]=Math.min(n,places[id]??n);}
     n+=group.length;
   }
   return {...places,...event.placements};
